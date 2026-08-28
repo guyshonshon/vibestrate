@@ -53,24 +53,30 @@ describe("docs diagrams", () => {
   });
 
   it("keeps every diagram inside the article column", () => {
-    // The docs article is 760px and all the existing figures cap at 560, so a
-    // wider one would be the odd drawing out rather than a deliberate choice.
+    // The docs article is 760px. A figure wider than that pushes the page
+    // sideways, which is the one thing a diagram must never do.
     const bad: string[] = [];
     for (const { slug, svg } of all) {
       const max = /max-width:\s*(\d+)px/.exec(svg)?.[1];
       if (!max) bad.push(`${slug}: no max-width`);
-      else if (Number(max) > 560) bad.push(`${slug}: max-width ${max}px is wider than the column`);
+      else if (Number(max) > 760) bad.push(`${slug}: max-width ${max}px is wider than the column`);
     }
     expect(bad.join("\n")).toBe("");
   });
 
-  it("paints every diagram in currentColor", () => {
-    // The site has one theme today, but these figures inherit their colour the
-    // way the other forty do. A literal hex would be the first one that stops
-    // matching the prose around it.
+  it("paints every diagram from the design tokens", () => {
+    // A figure takes its colour from the site's own tokens (--violet-deep,
+    // --fg-100, --bg-200) or inherits it with currentColor. A literal hex is a
+    // colour that stops tracking the design the moment a token moves, and is
+    // how a drawing ends up looking foreign on the page it sits in.
+    //
+    // One exception: text sitting ON a violet badge fill stays #ffffff. It is
+    // white because the fill behind it is dark violet, not because a token
+    // happens to be white today.
     const bad: string[] = [];
     for (const { slug, svg } of all) {
       for (const m of svg.matchAll(/(?:fill|stroke)="(#[0-9a-fA-F]{3,8}|rgb[^"]*)"/g)) {
+        if (m[1]!.toLowerCase() === "#ffffff") continue;
         bad.push(`${slug}: literal colour ${m[1]}`);
       }
     }

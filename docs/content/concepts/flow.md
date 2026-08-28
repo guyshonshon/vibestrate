@@ -54,42 +54,26 @@ Spec-up sits outside all four. It runs *before* whichever flow was chosen, and t
 
 **A flow step has no model, provider, or profile field.** Everything past the seat is yours:
 
-<svg viewBox="0 0 560 52" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Flow decides only the first link.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="111.5" y="0.5" width="88" height="45" rx="8"/>
-    <rect x="222.5" y="0.5" width="88" height="45" rx="8"/>
-    <rect x="333.5" y="0.5" width="116" height="45" rx="8"/>
-    <rect x="472.5" y="0.5" width="87" height="45" rx="8"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
-    <rect x="0.5" y="0.5" width="88" height="45" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M92.5 23 H102.5"/>
-    <path d="M203.5 23 H213.5"/>
-    <path d="M314.5 23 H324.5"/>
-    <path d="M453.5 23 H463.5"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <polygon points="102.5,19.5 108,23 102.5,26.5"/>
-    <polygon points="213.5,19.5 219,23 213.5,26.5"/>
-    <polygon points="324.5,19.5 330,23 324.5,26.5"/>
-    <polygon points="463.5,19.5 469,23 463.5,26.5"/>
-  </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="44.5" y="19">Flow step</text>
-    <text x="155.5" y="19">Seat</text>
-    <text x="266.5" y="19">Role</text>
-    <text x="391.5" y="19">Profile</text>
-    <text x="516" y="19">Provider</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="44.5" y="35">review</text>
-    <text x="155.5" y="35">reviewer</text>
-    <text x="266.5" y="35">reviewer</text>
-    <text x="391.5" y="35">claude-balanced</text>
-    <text x="516" y="35">claude</text>
-  </g>
+<svg viewBox="0 0 500 118" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Flow decides only the first link.">
+  <rect x="0" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
+  <text x="45" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Flow step</text>
+  <rect x="102" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="147" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Seat</text>
+  <path d="M90 43 L98 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="90,38.5 98,43 90,47.5" fill="var(--fg-200)"/>
+  <rect x="204" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="249" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Role</text>
+  <path d="M192 43 L200 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="192,38.5 200,43 192,47.5" fill="var(--fg-200)"/>
+  <rect x="306" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="351" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Profile</text>
+  <path d="M294 43 L302 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="294,38.5 302,43 294,47.5" fill="var(--fg-200)"/>
+  <rect x="408" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="453" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Provider</text>
+  <path d="M396 43 L404 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="396,38.5 404,43 396,47.5" fill="var(--fg-200)"/>
+  <text x="0" y="96" font-size="11.5" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="start">review  -&gt;  reviewer  -&gt;  reviewer  -&gt;  claude-balanced  -&gt;  claude-code</text>
 </svg>
 
 The flow writes the first box and names the second; the last three belong to your crew. Pin the `reviewer` role to a profile there and every flow you run gets that reviewer; `--step-profile` changes one step for one run.
@@ -114,51 +98,33 @@ price.
 | `complexity`, `capabilities` | What the flow selector reads when it picks for you. |
 | `hidden` | Keeps a flow out of the pickers. The spec-up chain uses it. |
 
-<svg viewBox="0 0 560 196" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A flow holds a seats map and an ordered steps array. Each step names one seat, and the seats are what a crew answers. Nothing in a flow, a step or a seat can name a model, a provider or a price.">
-  <g fill="currentColor" fill-opacity="0.04">
-    <rect x="0" y="0" width="560" height="150" rx="10"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="20.5" y="30.5" width="150" height="46" rx="8"/>
-    <rect x="20.5" y="90.5" width="150" height="46" rx="8"/>
-    <rect x="230.5" y="30.5" width="140" height="46" rx="8"/>
-    <rect x="230.5" y="90.5" width="140" height="46" rx="8"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
-    <rect x="420.5" y="60.5" width="130" height="46" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M174 53 L224 53"/>
-    <path d="M174 113 L224 113"/>
-    <path d="M300 90 L300 80"/>
-    <path d="M374 53 L392 53 L392 83 L416 83"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <polygon points="218,49.5 224,53 218,56.5"/>
-    <polygon points="218,109.5 224,113 218,116.5"/>
-    <polygon points="296.5,86 300,80 303.5,86"/>
-    <polygon points="410,79.5 416,83 410,86.5"/>
-  </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="95" y="52">seats</text>
-    <text x="95" y="112">steps</text>
-    <text x="300" y="52">Seat</text>
-    <text x="300" y="112">Step</text>
-    <text x="485" y="82">Crew</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.62" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="10" y="17" text-anchor="start">flow</text>
-    <text x="95" y="67">label, description</text>
-    <text x="95" y="127">ordered, 1 or more</text>
-    <text x="300" y="67">a slot to fill</text>
-    <text x="300" y="127">kind, stage, io</text>
-    <text x="485" y="97">your roster</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="10.5" font-family="ui-monospace,monospace">
-    <text x="310" y="88" text-anchor="start">seat:</text>
-    <text x="392" y="74" text-anchor="middle">answered by</text>
-    <text x="0" y="176" text-anchor="start">no field here can name a model, a provider or a price</text>
-  </g>
+<svg viewBox="0 0 500 236" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="A flow holds a seats map and an ordered steps array. Each step names one seat, and the seats are what a crew answers. Nothing in a flow, a step or a seat can name a model, a provider or a price.">
+  <rect x="0" y="30" width="320" height="176" rx="14" fill="var(--bg-300)"/>
+  <polygon points="24.87,30 36.87,13 83.13,13 95.13,30 83.13,47 36.87,47" fill="var(--violet-deep)"/>
+  <text x="60" y="35" font-size="13" font-weight="600" fill="#ffffff" text-anchor="middle">Flow</text>
+  <rect x="24" y="66" width="130" height="52" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="89" y="90" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">seats</text>
+  <text x="89" y="108" font-size="11.5" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="middle">the slots</text>
+  <rect x="24" y="138" width="130" height="52" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="89" y="162" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">steps</text>
+  <text x="89" y="180" font-size="11.5" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="middle">the order</text>
+  <rect x="180" y="66" width="118" height="52" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="239" y="97" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Seat</text>
+  <rect x="180" y="138" width="118" height="52" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="239" y="169" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Step</text>
+  <path d="M158 92 L172 92" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="164,87.5 172,92 164,96.5" fill="var(--fg-200)"/>
+  <path d="M158 164 L172 164" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="164,159.5 172,164 164,168.5" fill="var(--fg-200)"/>
+  <path d="M239 138 L239 122" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="234.5,130 239,122 243.5,130" fill="var(--fg-200)"/>
+  <text x="248" y="133" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="start">seat</text>
+  <polygon points="394.87,106 406.87,89 453.13,89 465.13,106 453.13,123 406.87,123" fill="var(--violet-deep)"/>
+  <text x="430" y="111" font-size="13" font-weight="600" fill="#ffffff" text-anchor="middle">Crew</text>
+  <path d="M302 92 L340 92 L340 106 L382 106" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="374,101.5 382,106 374,110.5" fill="var(--fg-200)"/>
+  <text x="344" y="84" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="start">answered by</text>
+  <text x="0" y="230" font-size="11.5" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="start">no field here can name a model, a provider or a price</text>
 </svg>
 
 A flow is closed: its two references point at its own types, and its steps hand work to each other through named inputs and outputs.

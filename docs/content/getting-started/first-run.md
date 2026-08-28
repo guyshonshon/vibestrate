@@ -66,45 +66,42 @@ Vibestrate works best on what you'd hand a careful colleague: clear scope, code 
 
 The default flow wires that into eight steps, with the review loop capped at three passes: one review plus up to two fix cycles.
 
-<svg viewBox="0 0 560 100" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The default flow runs plan, architecture, implement, validation, review and verify in order; when review asks for changes it loops through fix and revalidation and back to review.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="3" y="6" width="64" height="30" rx="8"/>
-    <rect x="86" y="6" width="96" height="30" rx="8"/>
-    <rect x="201" y="6" width="80" height="30" rx="8"/>
-    <rect x="300" y="6" width="84" height="30" rx="8"/>
-    <rect x="403" y="6" width="68" height="30" rx="8"/>
-    <rect x="490" y="6" width="68" height="30" rx="8"/>
-    <rect x="201" y="62" width="80" height="30" rx="8"/>
-    <rect x="300" y="62" width="96" height="30" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M71 17l4 4-4 4"/>
-    <path d="M186 17l4 4-4 4"/>
-    <path d="M285 17l4 4-4 4"/>
-    <path d="M388 17l4 4-4 4"/>
-    <path d="M475 17l4 4-4 4"/>
-    <path d="M415 36v12h-174v8"/>
-    <path d="M281 77h14"/>
-    <path d="M396 77h59v-35"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <path d="M237 56l4 6 4-6z"/>
-    <path d="M295 73l5 4-5 4z"/>
-    <path d="M451 42l4-6 4 6z"/>
-  </g>
-  <g fill="currentColor" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="35" y="25">plan</text>
-    <text x="134" y="25">architecture</text>
-    <text x="241" y="25">implement</text>
-    <text x="342" y="25">validation</text>
-    <text x="437" y="25">review</text>
-    <text x="524" y="25">verify</text>
-    <text x="241" y="81">fix</text>
-    <text x="348" y="81">revalidation</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" text-anchor="end">
-    <text x="189" y="81">if review asks for changes</text>
-  </g>
+<svg viewBox="0 0 500 246" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="The default flow runs plan, architecture, implement and validate in order, then review. Review approved goes straight to verify; changes requested goes to fix, then re-validate, and back to review at most three times.">
+  <rect x="0" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="58" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Plan</text>
+  <rect x="128" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="186" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Architecture</text>
+  <rect x="256" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="314" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Implement</text>
+  <rect x="384" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="442" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Validate</text>
+  <path d="M116 30 L128 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="120,25.5 128,30 120,34.5" fill="var(--fg-200)"/>
+  <path d="M244 30 L256 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="248,25.5 256,30 248,34.5" fill="var(--fg-200)"/>
+  <path d="M372 30 L384 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="376,25.5 384,30 376,34.5" fill="var(--fg-200)"/>
+  <path d="M442 52 L442 68 L58 68 L58 80" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="53.5,72 58,80 62.5,72" fill="var(--fg-200)"/>
+  <rect x="0" y="84" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
+  <text x="58" y="111" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Review</text>
+  <path d="M116 106 L380 106" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="372,101.5 380,106 372,110.5" fill="var(--fg-200)"/>
+  <text x="248" y="98" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">approved</text>
+  <rect x="384" y="84" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="442" y="111" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Verify</text>
+  <path d="M58 128 L58 152 L124 152" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="116,147.5 124,152 116,156.5" fill="var(--fg-200)"/>
+  <text x="134" y="146" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="start">changes requested</text>
+  <rect x="128" y="158" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="186" y="185" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Fix</text>
+  <path d="M244 180 L252 180" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="244,175.5 252,180 244,184.5" fill="var(--fg-200)"/>
+  <rect x="256" y="158" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="314" y="185" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Re-validate</text>
+  <path d="M372 180 L466 180 L466 216 L34 216 L34 132" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="29.5,140 34,132 38.5,140" fill="var(--fg-200)"/>
+  <text x="250" y="232" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">at most 3 passes</text>
 </svg>
 
 Those step names are the folder names under the run's artifacts, so the `review` box above is the same `review` in `artifacts/flows/review/output.md`.

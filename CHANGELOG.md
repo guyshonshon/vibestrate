@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **The docs diagrams are drawn on the design system now.** They were matching
+  the forty-one figures already in the docs - `currentColor` at 0.28 opacity,
+  11px labels - which is the weakest convention on the page rather than the
+  design: the site defines `--violet-deep`, `--fg-100` and Geist, and those
+  figures use none of them. Redrawn with the tokens: violet badges carrying real
+  names, white type, filled containers, bold connectors, and about 1.7x the type
+  size. The chain figure on Flow, Seat, Role and Profile came with them, so no
+  page shows a bold drawing beside a faint one.
+
 - **The docs overview now explains the docs.** It described the product and
   stopped, so the shape of the manual - what a page looks like, which of the
   three kinds you are on, what is generated and therefore cannot drift - was

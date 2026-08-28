@@ -47,54 +47,42 @@ Eight steps. Six always run; **fix** and **re-validate** are loop-only, firing w
 
 Eight steps, seven statuses: `validating` happens twice. The [state machine](/docs/concepts/state) is the rail underneath, so a run cannot jump from `planning` to `merge_ready`. The fields each step is written from are annotated in [Flow YAML](/docs/reference/flow-yml).
 
-<svg viewBox="0 0 560 180" width="100%" style="max-width:560px;height:auto" role="img" aria-label="The default flow runs plan, architecture, implement and validate in order, then review. Review approved goes straight to verify; changes requested goes to fix, then re-validate, and back to review at most three times.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="0.5" y="6.5" width="131" height="34" rx="8"/>
-    <rect x="143.5" y="6.5" width="131" height="34" rx="8"/>
-    <rect x="286.5" y="6.5" width="131" height="34" rx="8"/>
-    <rect x="429.5" y="6.5" width="131" height="34" rx="8"/>
-    <rect x="143.5" y="138.5" width="131" height="34" rx="8"/>
-    <rect x="286.5" y="138.5" width="131" height="34" rx="8"/>
-    <rect x="429.5" y="70.5" width="131" height="34" rx="8"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
-    <rect x="0.5" y="70.5" width="131" height="34" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M135 23 L139 23"/>
-    <path d="M278 23 L282 23"/>
-    <path d="M421 23 L425 23"/>
-    <path d="M494 40 L494 54 L66 54 L66 70"/>
-    <path d="M66 104 L66 122 L209 122 L209 138"/>
-    <path d="M274 155 L282 155"/>
-    <path d="M417 155 L446 155 L446 122 L131 122 L131 104"/>
-    <path d="M131 87 L425 87"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <polygon points="133,19.5 139,23 133,26.5"/>
-    <polygon points="276,19.5 282,23 276,26.5"/>
-    <polygon points="419,19.5 425,23 419,26.5"/>
-    <polygon points="62.5,64 66,70 69.5,64"/>
-    <polygon points="205.5,132 209,138 212.5,132"/>
-    <polygon points="276,151.5 282,155 276,158.5"/>
-    <polygon points="127.5,110 131,104 134.5,110"/>
-    <polygon points="419,83.5 425,87 419,90.5"/>
-  </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="65.5" y="27">Plan</text>
-    <text x="208.5" y="27">Architecture</text>
-    <text x="351.5" y="27">Implement</text>
-    <text x="494.5" y="27">Validate</text>
-    <text x="65.5" y="91">Review</text>
-    <text x="208.5" y="159">Fix</text>
-    <text x="351.5" y="159">Re-validate</text>
-    <text x="494.5" y="91">Verify</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="10.5" font-family="ui-monospace,monospace">
-    <text x="137" y="118" text-anchor="start">changes requested</text>
-    <text x="452" y="151" text-anchor="start">at most 3</text>
-    <text x="278" y="80" text-anchor="middle">review approved</text>
-  </g>
+<svg viewBox="0 0 500 246" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="The default flow runs plan, architecture, implement and validate in order, then review. Review approved goes straight to verify; changes requested goes to fix, then re-validate, and back to review at most three times.">
+  <rect x="0" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="58" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Plan</text>
+  <rect x="128" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="186" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Architecture</text>
+  <rect x="256" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="314" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Implement</text>
+  <rect x="384" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="442" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Validate</text>
+  <path d="M116 30 L128 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="120,25.5 128,30 120,34.5" fill="var(--fg-200)"/>
+  <path d="M244 30 L256 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="248,25.5 256,30 248,34.5" fill="var(--fg-200)"/>
+  <path d="M372 30 L384 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="376,25.5 384,30 376,34.5" fill="var(--fg-200)"/>
+  <path d="M442 52 L442 68 L58 68 L58 80" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="53.5,72 58,80 62.5,72" fill="var(--fg-200)"/>
+  <rect x="0" y="84" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
+  <text x="58" y="111" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Review</text>
+  <path d="M116 106 L380 106" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="372,101.5 380,106 372,110.5" fill="var(--fg-200)"/>
+  <text x="248" y="98" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">approved</text>
+  <rect x="384" y="84" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="442" y="111" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Verify</text>
+  <path d="M58 128 L58 152 L124 152" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="116,147.5 124,152 116,156.5" fill="var(--fg-200)"/>
+  <text x="134" y="146" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="start">changes requested</text>
+  <rect x="128" y="158" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="186" y="185" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Fix</text>
+  <path d="M244 180 L252 180" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="244,175.5 252,180 244,184.5" fill="var(--fg-200)"/>
+  <rect x="256" y="158" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="314" y="185" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Re-validate</text>
+  <path d="M372 180 L466 180 L466 216 L34 216 L34 132" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="29.5,140 34,132 38.5,140" fill="var(--fg-200)"/>
+  <text x="250" y="232" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">at most 3 passes</text>
 </svg>
 
 The one cycle in the default flow, and its bound. Review either approves straight through to verify, or sends the work to fix and re-validate and looks again, at most three times.

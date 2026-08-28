@@ -52,42 +52,26 @@ A role card on the **Crew** page can also mint one: **New profile** there create
 
 ## Where a profile sits
 
-<svg viewBox="0 0 560 52" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Profile is the fourth link, and the one that carries the model and the effort.">
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="0.5" y="0.5" width="88" height="45" rx="8"/>
-    <rect x="111.5" y="0.5" width="88" height="45" rx="8"/>
-    <rect x="222.5" y="0.5" width="88" height="45" rx="8"/>
-    <rect x="472.5" y="0.5" width="87" height="45" rx="8"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
-    <rect x="333.5" y="0.5" width="116" height="45" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M92.5 23 H102.5"/>
-    <path d="M203.5 23 H213.5"/>
-    <path d="M314.5 23 H324.5"/>
-    <path d="M453.5 23 H463.5"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <polygon points="102.5,19.5 108,23 102.5,26.5"/>
-    <polygon points="213.5,19.5 219,23 213.5,26.5"/>
-    <polygon points="324.5,19.5 330,23 324.5,26.5"/>
-    <polygon points="463.5,19.5 469,23 463.5,26.5"/>
-  </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="44.5" y="19">Flow step</text>
-    <text x="155.5" y="19">Seat</text>
-    <text x="266.5" y="19">Role</text>
-    <text x="391.5" y="19">Profile</text>
-    <text x="516" y="19">Provider</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="44.5" y="35">review</text>
-    <text x="155.5" y="35">reviewer</text>
-    <text x="266.5" y="35">reviewer</text>
-    <text x="391.5" y="35">claude-balanced</text>
-    <text x="516" y="35">claude</text>
-  </g>
+<svg viewBox="0 0 500 118" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="A Flow step names a Seat, your Crew's Role fills that Seat, the Role names a Profile, and the Profile names a Provider. The Profile is the fourth link, and the one that carries the model and the effort.">
+  <rect x="0" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="45" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Flow step</text>
+  <rect x="102" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="147" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Seat</text>
+  <path d="M90 43 L98 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="90,38.5 98,43 90,47.5" fill="var(--fg-200)"/>
+  <rect x="204" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="249" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Role</text>
+  <path d="M192 43 L200 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="192,38.5 200,43 192,47.5" fill="var(--fg-200)"/>
+  <rect x="306" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
+  <text x="351" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Profile</text>
+  <path d="M294 43 L302 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="294,38.5 302,43 294,47.5" fill="var(--fg-200)"/>
+  <rect x="408" y="20" width="90" height="46" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="453" y="48" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Provider</text>
+  <path d="M396 43 L404 43" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="396,38.5 404,43 396,47.5" fill="var(--fg-200)"/>
+  <text x="0" y="96" font-size="11.5" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="start">review  -&gt;  reviewer  -&gt;  reviewer  -&gt;  claude-balanced  -&gt;  claude-code</text>
 </svg>
 
 Two roles can share one profile, and a single role can run on a stronger profile for one step through a step override.
@@ -120,65 +104,44 @@ does by default. That is why a fresh project runs with almost nothing set.
 | `disallowedTools` | Provider tool names this profile may not use. |
 | `providerOptions` | Raw provider-specific options, for what the fields above do not reach. |
 
-<svg viewBox="0 0 560 226" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A crew holds roles; a role names the profile it runs on; a profile names the provider and carries model, power, maxTokens, timeoutMs and disallowedTools; the provider is the command that actually gets spawned.">
-  <g fill="currentColor" fill-opacity="0.04">
-    <rect x="272" y="90" width="288" height="124" rx="10"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="0.5" y="22.5" width="112" height="42" rx="8"/>
-    <rect x="150.5" y="22.5" width="112" height="42" rx="8"/>
-    <rect x="454.5" y="22.5" width="106" height="42" rx="8"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
-    <rect x="300.5" y="22.5" width="116" height="42" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M116 43 L146 43"/>
-    <path d="M266 43 L296 43"/>
-    <path d="M420 43 L450 43"/>
-    <path d="M358 66 L358 84"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <polygon points="140,39.5 146,43 140,46.5"/>
-    <polygon points="290,39.5 296,43 290,46.5"/>
-    <polygon points="444,39.5 450,43 444,46.5"/>
-    <polygon points="354.5,78 358,84 361.5,78"/>
-  </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="56" y="42">Crew</text>
-    <text x="206" y="42">Role</text>
-    <text x="358" y="42">Profile</text>
-    <text x="507" y="42">Provider</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.62" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="56" y="57">roles</text>
-    <text x="206" y="57">seats, prompt</text>
-    <text x="358" y="57">the join</text>
-    <text x="507" y="57">command</text>
-    <text x="288" y="110" text-anchor="start" fill-opacity="0.92">provider</text>
-    <text x="288" y="128" text-anchor="start" fill-opacity="0.92">model</text>
-    <text x="288" y="146" text-anchor="start" fill-opacity="0.92">power</text>
-    <text x="288" y="164" text-anchor="start" fill-opacity="0.92">maxTokens</text>
-    <text x="288" y="182" text-anchor="start" fill-opacity="0.92">timeoutMs</text>
-    <text x="288" y="200" text-anchor="start" fill-opacity="0.92">disallowedTools</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="10.5" font-family="ui-monospace,monospace">
-    <text x="131" y="16" text-anchor="middle">has</text>
-    <text x="281" y="16" text-anchor="middle">runs on</text>
-    <text x="435" y="16" text-anchor="middle">names</text>
-    <text x="544" y="110" text-anchor="end">-&gt; Provider</text>
-    <text x="544" y="128" text-anchor="end">string | null</text>
-    <text x="544" y="146" text-anchor="end">string | null</text>
-    <text x="544" y="164" text-anchor="end">number | null</text>
-    <text x="544" y="182" text-anchor="end">number | null</text>
-    <text x="544" y="200" text-anchor="end">string[] | null</text>
-    <text x="0" y="110" text-anchor="start">five of the six default to</text>
-    <text x="0" y="126" text-anchor="start">null, meaning whatever the</text>
-    <text x="0" y="142" text-anchor="start">provider does by default.</text>
-    <text x="0" y="166" text-anchor="start">timeoutMs left unset is</text>
-    <text x="0" y="182" text-anchor="start">what an unattended run</text>
-    <text x="0" y="198" text-anchor="start">has to bound some other way.</text>
-  </g>
+<svg viewBox="0 0 500 316" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="A crew holds roles; a role names the profile it runs on; a profile carries the model, power, maxTokens, timeoutMs and disallowedTools and names the provider; the provider is the command that actually gets spawned.">
+  <polygon points="14.87,24 26.87,7 73.13,7 85.13,24 73.13,41 26.87,41" fill="var(--violet-deep)"/>
+  <text x="50" y="29" font-size="13" font-weight="600" fill="#ffffff" text-anchor="middle">Crew</text>
+  <polygon points="136.87,24 148.87,7 195.13,7 207.13,24 195.13,41 148.87,41" fill="var(--violet-deep)"/>
+  <text x="172" y="29" font-size="13" font-weight="600" fill="#ffffff" text-anchor="middle">Role</text>
+  <polygon points="265.022,24 277.022,7 342.977,7 354.977,24 342.977,41 277.022,41" fill="var(--violet-deep)"/>
+  <text x="310" y="29" font-size="13" font-weight="600" fill="#ffffff" text-anchor="middle">Profile</text>
+  <polygon points="397.74,24 409.74,7 482.26,7 494.26,24 482.26,41 409.74,41" fill="var(--violet-deep)"/>
+  <text x="446" y="29" font-size="13" font-weight="600" fill="#ffffff" text-anchor="middle">Provider</text>
+  <path d="M88 24 L132 24" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="124,19.5 132,24 124,28.5" fill="var(--fg-200)"/>
+  <path d="M212 24 L262 24" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="254,19.5 262,24 254,28.5" fill="var(--fg-200)"/>
+  <path d="M358 24 L400 24" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="392,19.5 400,24 392,28.5" fill="var(--fg-200)"/>
+  <path d="M310 44 L310 60" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="305.5,52 310,60 314.5,52" fill="var(--fg-200)"/>
+  <rect x="150" y="66" width="350" height="180" rx="14" fill="var(--bg-300)"/>
+  <text x="172" y="100" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">provider</text>
+  <text x="478" y="100" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">-&gt; Provider</text>
+  <text x="172" y="125" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">model</text>
+  <text x="478" y="125" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">string | null</text>
+  <text x="172" y="150" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">power</text>
+  <text x="478" y="150" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">string | null</text>
+  <text x="172" y="175" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">maxTokens</text>
+  <text x="478" y="175" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">number | null</text>
+  <text x="172" y="200" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">timeoutMs</text>
+  <text x="478" y="200" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">number | null</text>
+  <text x="172" y="225" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">disallowedTools</text>
+  <text x="478" y="225" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">string[] | null</text>
+  <text x="0" y="104" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)" text-anchor="start">The profile is the</text>
+  <text x="0" y="128" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)" text-anchor="start">join: the only place</text>
+  <text x="0" y="152" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)" text-anchor="start">a model, an effort</text>
+  <text x="0" y="176" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)" text-anchor="start">level, a token cap</text>
+  <text x="0" y="200" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)" text-anchor="start">and a timeout are</text>
+  <text x="0" y="224" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)" text-anchor="start">named together.</text>
+  <text x="0" y="282" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)" text-anchor="start">Five of the six default to null: whatever the provider does by default.</text>
+  <text x="0" y="306" font-size="11.5" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="start">timeoutMs unset is what an unattended run has to bound another way.</text>
 </svg>
 
 The profile is the join. It is the only place a model, an effort level, a token cap and a timeout are named together.

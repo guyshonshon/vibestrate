@@ -116,51 +116,33 @@ run does next.
 | `pendingApprovalId` | The gate it is holding at, when it is holding. |
 | `ownerPid` | The process that owns it, so a dead owner is detectable. |
 
-<svg viewBox="0 0 560 178" width="100%" style="max-width:560px;height:auto" role="img" aria-label="A run carries its own identity, branch, worktree and verdict, plus a snapshot of the flow it resolved. Four of those fields are what make a run resumable after the process that started it is gone.">
-  <g fill="currentColor" fill-opacity="0.04">
-    <rect x="0" y="0" width="270" height="160" rx="10"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="1">
-    <rect x="330.5" y="96.5" width="210" height="40" rx="8"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.7" stroke-width="1">
-    <rect x="330.5" y="20.5" width="210" height="40" rx="8"/>
-  </g>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="1">
-    <path d="M274 62 L300 62 L300 40 L326 40"/>
-    <path d="M274 96 L300 96 L300 116 L326 116"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <polygon points="320,36.5 326,40 320,43.5"/>
-    <polygon points="320,112.5 326,116 320,119.5"/>
-  </g>
-  <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="435" y="39">resumable</text>
-    <text x="435" y="115">auditable</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.62" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">
-    <text x="10" y="17" text-anchor="start">state.json</text>
-    <text x="16" y="40" text-anchor="start" fill-opacity="0.92">runId</text>
-    <text x="16" y="58" text-anchor="start" fill-opacity="0.92">status</text>
-    <text x="16" y="76" text-anchor="start" fill-opacity="0.92">branchName</text>
-    <text x="16" y="94" text-anchor="start" fill-opacity="0.92">worktreePath</text>
-    <text x="16" y="112" text-anchor="start" fill-opacity="0.92">flow</text>
-    <text x="16" y="130" text-anchor="start" fill-opacity="0.92">crewId</text>
-    <text x="16" y="148" text-anchor="start" fill-opacity="0.92">reviewLoopCount</text>
-    <text x="435" y="54">status + loops + flow</text>
-    <text x="435" y="130">events + actions + verdict</text>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5" font-size="10.5" font-family="ui-monospace,monospace">
-    <text x="254" y="40" text-anchor="end">its identity</text>
-    <text x="254" y="58" text-anchor="end">one of sixteen</text>
-    <text x="254" y="76" text-anchor="end">its own branch</text>
-    <text x="254" y="94" text-anchor="end">outside the repo</text>
-    <text x="254" y="112" text-anchor="end">the snapshot</text>
-    <text x="254" y="130" text-anchor="end">-&gt; Crew</text>
-    <text x="254" y="148" text-anchor="end">number</text>
-    <text x="330" y="76" text-anchor="start">picked back up after the</text>
-    <text x="330" y="92" text-anchor="start">owning process is gone</text>
-  </g>
+<svg viewBox="0 0 500 266" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="A run carries its own identity, branch, worktree and verdict, plus a snapshot of the flow it resolved. Four of those fields are what make a run resumable after the process that started it is gone.">
+  <rect x="0" y="22" width="286" height="208" rx="14" fill="var(--bg-300)"/>
+  <polygon points="30.1525,22 42.1525,5 81.8475,5 93.8475,22 81.8475,39 42.1525,39" fill="var(--violet-deep)"/>
+  <text x="62" y="27" font-size="13" font-weight="600" fill="#ffffff" text-anchor="middle">Run</text>
+  <text x="20" y="76" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">runId</text>
+  <text x="266" y="76" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">its identity</text>
+  <text x="20" y="101" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">status</text>
+  <text x="266" y="101" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">one of sixteen</text>
+  <text x="20" y="126" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">branchName</text>
+  <text x="266" y="126" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">its own branch</text>
+  <text x="20" y="151" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">worktreePath</text>
+  <text x="266" y="151" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">outside the repo</text>
+  <text x="20" y="176" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">flow</text>
+  <text x="266" y="176" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">the snapshot</text>
+  <text x="20" y="201" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)">crewId</text>
+  <text x="266" y="201" font-size="11" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="end">-&gt; Crew</text>
+  <rect x="330" y="44" width="170" height="56" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
+  <text x="415" y="70" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">resumable</text>
+  <text x="415" y="88" font-size="11.5" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="middle">status + loops + flow</text>
+  <rect x="330" y="150" width="170" height="56" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
+  <text x="415" y="176" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">auditable</text>
+  <text x="415" y="194" font-size="11.5" fill="var(--violet-soft)" font-family="var(--font-mono)" text-anchor="middle">events + actions</text>
+  <path d="M286 100 L308 100 L308 72 L326 72" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="318,67.5 326,72 318,76.5" fill="var(--fg-200)"/>
+  <path d="M286 150 L308 150 L308 178 L326 178" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="318,173.5 326,178 318,182.5" fill="var(--fg-200)"/>
+  <text x="0" y="258" font-size="11.5" fill="var(--fg-100)" font-family="var(--font-mono)" text-anchor="start">enough state to be picked back up after the owning process is gone</text>
 </svg>
 
 What the run record is for: enough state to be picked back up, and enough evidence to be audited afterwards.
