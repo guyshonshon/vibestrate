@@ -8,7 +8,7 @@ slug: concepts/derived-flows
 
 A [[flow]] is a generic recipe, so a fixed one is always slightly wrong: too heavy for a one-line change, too light for a migration touching money.
 
-**Deriving** builds a flow from the work itself. Give it a task with real parts to it and you get a flow shaped to those parts, rather than the same eight steps regardless.
+**Deriving** builds a flow from the work itself. Give it a task with real parts to it and you get a flow shaped to those parts, rather than the same four steps regardless.
 
 ```
 Task: "Add team billing: a teams table, an owner-only invite endpoint, a seat counter"

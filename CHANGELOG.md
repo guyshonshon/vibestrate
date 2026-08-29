@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **The docs describe the flow the product actually runs.** The default flow
+  became three seats and four steps, but the pages explaining it still walked
+  eight: `concepts/workflow.md` kept an architect, a dedicated fixer and a
+  verify turn in its step table, its figure and its review-loop description,
+  and `concepts/flow.md`, `concepts/task.md` and `concepts/derived-flows.md`
+  each counted the old steps. The generated stage reference also called that
+  seven-stage pipeline "the default Vibestrate workflow", so the docs shipped
+  the wrong shape twice: once in prose and once as generated data. The stage
+  list itself was right and stays: `architecting`, `fixing` and `verifying`
+  are real run statuses that `--resume-stage` accepts, they just belong to
+  `deep` rather than to the default. The six-seat pipeline is now described
+  where it lives, as `deep`.
 - **One text colour, and labels in their own voice.** Secondary text used
   three near-white tokens within three percent of each other, which separated
   nothing and only made text look tired - and there is no opacity anywhere in

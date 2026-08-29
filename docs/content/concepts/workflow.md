@@ -1,6 +1,6 @@
 ---
 title: Steps - the workflow of a run
-description: The eight steps of the default flow, in order, and what each one is for.
+description: The four steps of the default flow, in order, and what each one is for.
 slug: concepts/workflow
 ---
 
@@ -11,18 +11,18 @@ A **workflow** is the ordered set of steps one [[run]] works through, from submi
 This page is the canonical description of the built-in `default` flow:
 
 ```
-plan -> architecture -> implement -> validate -> review -> verify
-                                        ^          |
-                                        +-- fix <--+   (only on CHANGES_REQUESTED)
+plan -> implement -> validate -> review
+          ^                        |
+          +------------------------+   (only on CHANGES_REQUESTED)
 ```
 
-Eight steps. Six always run; **fix** and **re-validate** are loop-only, firing when review returns `CHANGES_REQUESTED`.
+Four steps and one cycle. There is no separate fixer and no verify turn: **review** is the decision step, and a `CHANGES_REQUESTED` decision re-enters **implement** with the findings attached.
 
 `vibe ui` opens the dashboard on `127.0.0.1:4317`; a live run sits at the top of the sidebar, and **Runs** lists the rest under Active, Merge-ready and Failed. A run's page has seven tabs: **Steps** lists each step's state, **Tree** draws it as a node tree, **Events** is the raw stream, **Artifacts** holds every prompt and output, **Validation** carries the command results the loop turns on, **Terminal** shows the live process, and **Replay** walks a finished run event by event.
 
 <div class="docs-callout tip">
 
-**Tip.** A review that asks for changes does not end the run and does not start it over: it sends the work to fix with the finding attached, then re-validates, then reviews again. That is why a run can pass on its second attempt without you doing anything.
+**Tip.** A review that asks for changes does not end the run and does not start it over: it hands the findings back to the seat that wrote the code, which builds again, re-validates, and is reviewed again. That is why a run can pass on its second attempt without you doing anything.
 
 </div>
 
@@ -37,79 +37,60 @@ Eight steps. Six always run; **fix** and **re-validate** are loop-only, firing w
 | Step | Run status | Seat | Output |
 |---|---|---|---|
 | plan | `planning` | planner | a plan for the change |
-| architecture | `architecting` | architect | approach, implementer boundaries, risks |
 | implement | `executing` | implementer | file edits in the worktree |
 | validate | `validating` | none | your `commands.validate` output |
 | review | `reviewing` | reviewer | findings, and `APPROVED` / `CHANGES_REQUESTED` / `BLOCKED` |
-| fix | `fixing` | fixer | answers to the findings, and an updated diff |
-| re-validate | `validating` | none | your `commands.validate` output |
-| verify | `verifying` | verifier | `PASSED` / `FAILED` / `NEEDS_HUMAN` |
 
-Eight steps, seven statuses: `validating` happens twice. The [state machine](/docs/concepts/state) is the rail underneath, so a run cannot jump from `planning` to `merge_ready`. The fields each step is written from are annotated in [Flow YAML](/docs/reference/flow-yml).
+Four steps, four statuses, and the last three of them repeat together on a review round. The [state machine](/docs/concepts/state) is the rail underneath, so a run cannot jump from `planning` to `merge_ready`. The fields each step is written from are annotated in [Flow YAML](/docs/reference/flow-yml).
 
-<svg viewBox="0 0 500 246" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="The default flow runs plan, architecture, implement and validate in order, then review. Review approved goes straight to verify; changes requested goes to fix, then re-validate, and back to review at most three times.">
+`architecting`, `fixing` and `verifying` are real run statuses, and `--resume-stage` accepts them - they belong to the `deep` flow, not to this one.
+
+<svg viewBox="0 0 500 124" width="100%" style="max-width:720px;height:auto" role="img" font-family="var(--font-sans)" aria-label="The default flow runs plan, implement, validate and review in order. An approved review ends the run; changes requested goes back to implement, at most three passes.">
   <rect x="0" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
   <text x="58" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Plan</text>
   <rect x="128" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
-  <text x="186" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Architecture</text>
+  <text x="186" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Implement</text>
   <rect x="256" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
-  <text x="314" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Implement</text>
-  <rect x="384" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
-  <text x="442" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Validate</text>
+  <text x="314" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Validate</text>
+  <rect x="384" y="8" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
+  <text x="442" y="35" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Review</text>
   <path d="M116 30 L128 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
   <polygon points="120,25.5 128,30 120,34.5" fill="var(--fg-200)"/>
   <path d="M244 30 L256 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
   <polygon points="248,25.5 256,30 248,34.5" fill="var(--fg-200)"/>
   <path d="M372 30 L384 30" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
   <polygon points="376,25.5 384,30 376,34.5" fill="var(--fg-200)"/>
-  <path d="M442 52 L442 68 L58 68 L58 80" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
-  <polygon points="53.5,72 58,80 62.5,72" fill="var(--fg-200)"/>
-  <rect x="0" y="84" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--violet-soft)" stroke-width="1.75"/>
-  <text x="58" y="111" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Review</text>
-  <path d="M116 106 L380 106" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
-  <polygon points="372,101.5 380,106 372,110.5" fill="var(--fg-200)"/>
-  <text x="248" y="98" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">approved</text>
-  <rect x="384" y="84" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
-  <text x="442" y="111" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Verify</text>
-  <path d="M58 128 L58 152 L124 152" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
-  <polygon points="116,147.5 124,152 116,156.5" fill="var(--fg-200)"/>
-  <text x="134" y="146" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="start">changes requested</text>
-  <rect x="128" y="158" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
-  <text x="186" y="185" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Fix</text>
-  <path d="M244 180 L252 180" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
-  <polygon points="244,175.5 252,180 244,184.5" fill="var(--fg-200)"/>
-  <rect x="256" y="158" width="116" height="44" rx="10" fill="var(--bg-200)" stroke="var(--line-strong)" stroke-width="1.25"/>
-  <text x="314" y="185" font-size="14" font-weight="600" fill="var(--fg-100)" text-anchor="middle">Re-validate</text>
-  <path d="M372 180 L466 180 L466 216 L34 216 L34 132" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
-  <polygon points="29.5,140 34,132 38.5,140" fill="var(--fg-200)"/>
-  <text x="250" y="232" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">at most 3 passes</text>
+  <path d="M442 52 L442 92 L186 92 L186 60" fill="none" stroke="var(--fg-200)" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="181.5,60 186,52 190.5,60" fill="var(--fg-200)"/>
+  <text x="314" y="86" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">changes requested</text>
+  <text x="314" y="110" font-size="10.5" fill="var(--fg-300)" font-family="var(--font-mono)" text-anchor="middle">at most 3 passes</text>
 </svg>
 
-The one cycle in the default flow, and its bound. Review either approves straight through to verify, or sends the work to fix and re-validate and looks again, at most three times.
+The one cycle in the default flow, and its bound. Review either approves, which ends the run, or sends its findings back to implement and looks again, at most three times.
 
 ## Why the steps split this way
 
 <div class="docs-cards">
 
-**Plan before architecture**
-What to do, then how it fits. Conflating them produces plans that ignore the existing shape.
+**Plan before implement**
+What to do, then the doing. A model that plans while it edits tends to justify the edit it already made.
 
 **Validate before review**
 Your tests are cheaper than a model's attention.
 
-**Review before verify**
-Review judges the diff; verify decides merge-readiness from the whole record.
+**Review by a different seat**
+The reviewer is its own seat, so you can put it on a different model. A model reviewing its own work can only lower its own confidence.
 
-**Fix rather than restart**
-Starting over would discard everything that was already right.
+**Back to implement, not to a fixer**
+The seat that wrote the code owns it through the loop, and it already holds the context a separate fixer would have to rebuild.
 
 </div>
 
-## What the architect adds
+## When you want the longer pipeline
 
-The architect reads the plan and decides the approach against the existing codebase. It runs read-only in the crew `vibe init` writes.
+The six-seat pipeline that used to be the default is still here as the built-in **`deep`** flow: an architect between plan and implement, a dedicated fixer answering review rounds, and a separate verifier taking the last look before merge-ready.
 
-It can also stop the run. If the architect emits `HUMAN_APPROVAL: REQUIRED`, the run moves to `waiting_for_approval` before any code is written, and waits for your decision.
+The architect is the part you are most likely to want back. It reads the plan and decides the approach against the existing codebase, read-only, and it can stop the run: if it emits `HUMAN_APPROVAL: REQUIRED`, the run moves to `waiting_for_approval` before any code is written.
 
 ## Validation is the ground truth
 
@@ -119,7 +100,9 @@ It can also stop the run. If the architect emits `HUMAN_APPROVAL: REQUIRED`, the
 
 ## The review loop
 
-`review` is the decision step. Anything other than `CHANGES_REQUESTED` exits the loop immediately and goes to `verify`. `CHANGES_REQUESTED` runs `fix` and `re-validate`, then reviews again.
+`review` is the decision step. Anything other than `CHANGES_REQUESTED` exits the loop and ends the run. `CHANGES_REQUESTED` re-enters `implement` with the findings, which then re-validates and is reviewed again, three implement passes at most.
+
+The reviewer may run your commands but cannot write, which is enforced at the tool layer rather than asked for in the prompt. Before every hand-off the implementer does a scoped self-review of its own diff, so the reviewer is reading work that has already had one pass over it.
 
 `workflow.maxReviewLoops` is an optional global ceiling: set it and no flow's loop budget goes above that number. Unset by default, so each flow keeps its own budget. A per-crew `maxReviewLoops` takes precedence over both.
 
@@ -129,7 +112,8 @@ A [Flow](/docs/concepts/flow) is a different recipe with different seats, step o
 
 ```bash
 vibe run "..."                  # Vibestrate picks
-vibe run "..." --flow default   # the eight steps
+vibe run "..." --flow default   # the four steps
+vibe run "..." --flow deep      # the six-seat pipeline
 vibe run "..." --flow quality-arbitration
 ```
 

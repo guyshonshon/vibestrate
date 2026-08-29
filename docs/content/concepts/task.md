@@ -38,7 +38,7 @@ A task becomes a **[[run]]**: one supervised attempt in its own copy of your rep
 <div><b>Reads your project</b><span>Language, package manager, and the validation commands it will trust later.</span></div>
 <div><b>Picks flow and crew</b><span>Whichever you named, or the pair Vibestrate resolves, with seats matched to your crew's roles.</span></div>
 <div><b>Opens a clean workspace</b><span>A fresh git worktree, so nothing touches your real project until you say so.</span></div>
-<div><b>Drives the steps</b><span>On the default flow: plan, architecture, implement, validate, review, verify, with fix and re-validate looping in.</span></div>
+<div><b>Drives the steps</b><span>On the default flow: plan, implement, validate, review, with review looping back to implement.</span></div>
 <div><b>Stops at a verdict</b><span>The run ends in its worktree with a diff; landing it is a separate, deliberate step.</span></div>
 </div>
 
