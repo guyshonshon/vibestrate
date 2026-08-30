@@ -33,7 +33,13 @@ const ALLOWED = new Map<string, string>([
  * so it cannot widen into a general escape hatch.
  */
 function characterIsTheSubject(line: string): boolean {
-  return line.includes('--pattern "—"');
+  // A documented policy example must contain the pattern it matches.
+  if (line.includes('--pattern "—"')) return true;
+  // A character class enumerating dash variants, so a parser can strip
+  // whichever one someone typed: `TODO — do the thing`. The en dash sitting
+  // immediately before the em dash is what identifies it - that pairing does
+  // not occur in prose.
+  return line.includes("–—");
 }
 
 function walk(dir: string, out: string[]): string[] {

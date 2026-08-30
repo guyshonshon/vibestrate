@@ -17,6 +17,10 @@
         {
           "slug": "getting-started/walkthrough",
           "label": "Full walkthrough"
+        },
+        {
+          "slug": "getting-started/existing-project",
+          "label": "Existing projects"
         }
       ]
     },

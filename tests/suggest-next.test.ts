@@ -13,6 +13,7 @@ function task(
     id,
     roadmapItemId: null,
     stage: null,
+    source: null,
     title: id,
     description: "",
     acceptanceCriteria: "",

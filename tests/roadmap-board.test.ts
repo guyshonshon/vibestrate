@@ -12,6 +12,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
   return {
     id,
     roadmapItemId: null,
+    source: null,
     title: id,
     description: "",
     acceptanceCriteria: "",

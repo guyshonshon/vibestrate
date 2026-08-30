@@ -121,6 +121,11 @@ export function CodebaseMapPanel() {
           <StatTile value={map.project.packageManager ?? "unknown"} label="package manager" />
           <StatTile value={map.totalTrackedFiles} label="tracked files" />
           <StatTile value={routesCount} label="routes" />
+          {/* Counts only. The markers themselves live on the TODOs surface,
+            * which is where they can be reviewed and promoted. */}
+          {map.todos ? (
+            <StatTile value={map.todos.total} label="todo markers" />
+          ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {result.stale ? (

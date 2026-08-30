@@ -139,6 +139,20 @@ function pathspecs(include?: string | null, exclude?: string | null): string[] {
   return specs;
 }
 
+/**
+ * Per-call result caps. Omitted fields keep the module defaults, which are sized
+ * for the interactive Content search (a human reads a page of hits, so 100 files
+ * is generous). A non-interactive sweep that must see EVERY match - the `vibe
+ * learn` TODO harvest - raises them deliberately and stays bounded by its own
+ * cap. The timeout and `maxBuffer` are not overridable: they are the real
+ * safety rail and no caller gets to remove it.
+ */
+export type CodeSearchLimits = {
+  maxFiles?: number;
+  maxMatchesPerFile?: number;
+  maxTotalMatches?: number;
+};
+
 export async function searchCodebaseContent(input: {
   projectRoot: string;
   query: string;
@@ -146,7 +160,11 @@ export async function searchCodebaseContent(input: {
   caseSensitive?: boolean;
   include?: string | null;
   exclude?: string | null;
+  limits?: CodeSearchLimits;
 }): Promise<CodeSearchResult> {
+  const maxFiles = input.limits?.maxFiles ?? MAX_FILES;
+  const maxMatchesPerFile = input.limits?.maxMatchesPerFile ?? MAX_MATCHES_PER_FILE;
+  const maxTotalMatches = input.limits?.maxTotalMatches ?? MAX_TOTAL_MATCHES;
   const query = (input.query ?? "").trim();
   const regex = Boolean(input.regex);
   const empty: CodeSearchResult = {
@@ -230,7 +248,7 @@ export async function searchCodebaseContent(input: {
     if (pathLooksSecret(path)) continue;
 
     if (!byFile.has(path)) {
-      if (byFile.size >= MAX_FILES) {
+      if (byFile.size >= maxFiles) {
         truncated = true;
         continue;
       }
@@ -244,13 +262,13 @@ export async function searchCodebaseContent(input: {
     const file = byFile.get(path)!;
     file.matchCount += 1;
     totalMatches += 1;
-    if (totalMatches >= MAX_TOTAL_MATCHES) truncated = true;
+    if (totalMatches >= maxTotalMatches) truncated = true;
 
-    if (file.matches.length >= MAX_MATCHES_PER_FILE) {
+    if (file.matches.length >= maxMatchesPerFile) {
       file.matchesTruncated = true;
       continue;
     }
-    if (totalMatches > MAX_TOTAL_MATCHES) continue;
+    if (totalMatches > maxTotalMatches) continue;
 
     let text = m[3]!;
     if (text.length > MAX_LINE_LEN) text = text.slice(0, MAX_LINE_LEN) + "…";

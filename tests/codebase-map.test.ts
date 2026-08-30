@@ -67,7 +67,7 @@ describe("extractCodebaseMap", () => {
   it("detects stack, scripts, layout, routes, and tooling", async () => {
     const map = await extractCodebaseMap(projectRoot, "2026-07-10T00:00:00.000Z");
 
-    expect(map.schemaVersion).toBe(1);
+    expect(map.schemaVersion).toBe(2);
     expect(map.project.name).toBe("demo-project");
     expect(map.project.scripts.build).toBe("tsc -p .");
     expect(map.project.scripts.test).toBe("vitest run");
@@ -268,7 +268,7 @@ describe("writeCodebaseMap / loadCodebaseMap", () => {
 
     const loaded = await loadCodebaseMap(projectRoot);
     expect(loaded.present).toBe(true);
-    expect(loaded.map?.schemaVersion).toBe(1);
+    expect(loaded.map?.schemaVersion).toBe(2);
     expect(loaded.stale).toBe(false);
 
     await fs.writeFile(path.join(projectRoot, "NOTES.md"), "more work\n");

@@ -71,6 +71,7 @@ import { buildBudgetCommand } from "./commands/budget.js";
 import { buildConsultCommand } from "./commands/consult.js";
 import { buildSpecUpCommand } from "./commands/spec-up.js";
 import { buildLearnCommand } from "./commands/learn.js";
+import { buildTodosCommand } from "./commands/todos.js";
 import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
 import { buildGuideCommand } from "./commands/guide.js";
@@ -230,6 +231,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildConsultCommand());
   program.addCommand(buildSteerCommand());
   program.addCommand(buildLearnCommand());
+  program.addCommand(buildTodosCommand());
   program.addCommand(buildBudgetCommand());
   program.addCommand(buildReplayCommand());
   program.addCommand(buildPauseCommand());

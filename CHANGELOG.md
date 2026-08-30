@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+- **Your codebase's TODO comments are now a backlog you can pick from.**
+  Adopting Vibestrate on a project that is already underway used to mean a
+  working setup and an empty Board, with the actual work still living in your
+  head. But your team already wrote a lot of it down, in the `TODO` and `FIXME`
+  comments they left while busy with something else. `vibe learn` now collects
+  those, `vibe todos` lists them grouped by directory, and you promote the ones
+  that are real onto the Board - in the terminal or on the dashboard, one at a
+  time or in a batch, editing the title and priority first if you want.
+  **Nothing lands on the Board on its own.** There is a new
+  [Picking up a project already underway](https://vibestrate.com/docs/getting-started/existing-project)
+  guide for the whole flow.
+
+  Two things make it usable rather than a one-time novelty. Promoted cards
+  remember which comment they came from, so re-running the scan never offers the
+  same TODO twice, editing code above a TODO does not confuse it, and deleting a
+  card puts its TODO back in the list. And you can dismiss the stale ones - a
+  note to self from three years ago stops coming back, permanently, until you
+  undismiss it.
+
+  The scan is deliberately fussy about what counts, because a review list full of
+  noise is the chore this removes: the marker has to be in a real comment (not a
+  string literal, not prose that merely mentions a TODO), it has to open the
+  comment, and it has to actually say something - bare `// TODO` and
+  `// TODO: fix` are counted but never offered. Detection is line-based and says
+  so rather than pretending to be exhaustive.
+
+- **`vibe roadmap accept` and the new `vibe todos` commands complete with TAB.**
+  Leave the id off and press TAB to pick from the real options, with titles shown
+  next to them. No shell configuration, and it works the same on Windows.
+
+- **Five frozen polyfills in the dependency tree now resolve to maintained
+  forks.** `object-assign`, `safe-buffer`, `safer-buffer`, `indent-string` and
+  `is-unicode-supported` are shims for things Node has had natively for years, or
+  utilities smaller than the cost of depending on them. They arrive transitively,
+  so they cannot simply be deleted; they are pinned to Socket's zero-dependency
+  replacements instead. Worth stating plainly because it changes what lands in
+  your `node_modules`: those five now come from `@socketregistry`.
 - **The docs describe the flow the product actually runs.** The default flow
   became three seats and four steps, but the pages explaining it still walked
   eight: `concepts/workflow.md` kept an architect, a dedicated fixer and a

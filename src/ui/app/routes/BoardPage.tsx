@@ -19,6 +19,7 @@ import {
   Ban,
   CircleCheck,
   Hourglass,
+  ListTodo,
   Plus,
   Sparkles,
 } from "lucide-react";
@@ -68,12 +69,14 @@ export function BoardPage({
   onSwitchTab,
   onOpenTask,
   onOpenRun,
+  onOpenTodos,
 }: {
   /** Which top-level tab is active: the kanban board or the ledger. */
   tab?: BoardTab;
   onSwitchTab: (tab: BoardTab) => void;
   onOpenTask: (taskId: string) => void;
   onOpenRun: (runId: string) => void;
+  onOpenTodos: () => void;
 }) {
   const { confirm } = useConfirm();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -86,6 +89,9 @@ export function BoardPage({
   // `tasks` starts empty, so the first paint of a real project claimed the
   // board was empty and told the owner to create their first task.
   const [loaded, setLoaded] = useState(false);
+  // Harvested TODOs are a separate surface; a scan that has never run is not an
+  // error here, it just means the strip stays hidden.
+  const [todoCount, setTodoCount] = useState(0);
   const { toast, showToast } = useToast(4000);
 
   const [showRoadmapForm, setShowRoadmapForm] = useState(false);
@@ -107,7 +113,7 @@ export function BoardPage({
 
   const load = useCallback(async () => {
     try {
-      const [t, r, sg] = await Promise.all([
+      const [t, r, sg, todos] = await Promise.all([
         api.listTasks(),
         // NOT silent, but not fatal either: an unreadable roadmap.json must not
         // take the board down with it. The tasks live in separate files and load
@@ -122,8 +128,12 @@ export function BoardPage({
         // "the supervisor has nothing to suggest" is a state the board renders
         // routinely. The board's real content is the two fetches above.
         api.suggestNext().catch(() => [] as TaskSuggestion[]),
+        // Same reasoning as suggestions: no scan yet is an ordinary state, and
+        // the strip simply stays hidden rather than reporting an error.
+        api.getTodos().catch(() => null),
       ]);
       setTasks(t);
+      setTodoCount(todos?.counts.promotable ?? 0);
       if (r !== null) {
         setItems(r);
         setRoadmapError(null);
@@ -503,6 +513,23 @@ export function BoardPage({
           className="mt-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-meta"
         />
       </PageHeader>
+
+      {/* Landing here on a repo that is already underway means an empty board
+        * and a blank page. The code itself lists work; say so once, quietly,
+        * and only while there is something to review. */}
+      {todoCount > 0 ? (
+        <button
+          type="button"
+          onClick={onOpenTodos}
+          className="mb-3 flex w-full shrink-0 items-center gap-2 rounded-[12px] border border-[color:var(--line)] bg-coal-600 px-3 py-2 text-left transition hover:border-violet-soft/40 hover:bg-coal-500"
+        >
+          <ListTodo className="h-3.5 w-3.5 shrink-0 text-amber-soft" strokeWidth={2} />
+          <span className="text-[12.5px] text-chalk-200">
+            {todoCount} TODO{todoCount === 1 ? "" : "s"} in your code, not on the board yet
+          </span>
+          <span className="ml-auto text-[12px] text-violet-soft">Review</span>
+        </button>
+      ) : null}
 
       {/* ── Metric strip (top) ────────────────────────────────────── */}
       <div className="mb-3 grid shrink-0 grid-cols-2 gap-2.5 md:grid-cols-4">

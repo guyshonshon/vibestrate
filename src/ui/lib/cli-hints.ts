@@ -156,6 +156,22 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe roadmap list", note: "the items already accepted" },
         ],
       };
+    case "todos":
+      return {
+        title: "TODOs in your code",
+        blurb:
+          "The TODO and FIXME markers `vibe learn` found. Promoting one creates its card.",
+        commands: [
+          { cmd: "vibe todos", note: "the ones worth reviewing" },
+          { cmd: "vibe todos promote <fingerprint>", note: "TAB completes it" },
+          { cmd: "vibe todos dismiss <fingerprint>", note: "stop offering it" },
+          { cmd: "vibe learn", note: "rescan the codebase" },
+        ],
+        tips: [
+          "Leave the fingerprint off and press TAB to pick from the list.",
+          "Deleting a promoted card puts its TODO back in the review list.",
+        ],
+      };
     case "proposal":
       return {
         title: "Proposal detail",

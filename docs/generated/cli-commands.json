@@ -2233,13 +2233,13 @@
             "roadmap",
             "accept"
           ],
-          "description": "Accept a parsed proposal (creates roadmap items + tasks atomically).",
-          "usage": "[options] <id>",
+          "description": "Accept a parsed proposal (creates roadmap items + tasks atomically). Omit the id to pick one with TAB.",
+          "usage": "[options] [id]",
           "arguments": [
             {
               "name": "id",
               "description": "",
-              "required": true,
+              "required": false,
               "variadic": false
             }
           ],
@@ -6402,7 +6402,7 @@
         "vibe",
         "learn"
       ],
-      "description": "Regenerate .vibestrate/CODEBASE.md, an auto-derived map of the project's stack, layout, and routes.",
+      "description": "Regenerate .vibestrate/CODEBASE.md, an auto-derived map of the project's stack, layout, and routes, and harvest the codebase's TODO markers.",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -6417,6 +6417,137 @@
           "description": "Print the current CODEBASE.md (run `vibe learn` first if there is none).",
           "usage": "[options]",
           "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "todos",
+          "path": [
+            "vibe",
+            "learn",
+            "todos"
+          ],
+          "description": "Print the harvested TODO counts. `vibe todos` reviews and promotes them.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "todos",
+      "path": [
+        "vibe",
+        "todos"
+      ],
+      "description": "Review the TODO markers `vibe learn` found in your code, and promote the real ones onto the Board.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [
+        {
+          "flags": "--all",
+          "description": "also list the ones already on the board and the dismissed ones",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--json",
+          "description": "emit JSON",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": [
+        {
+          "name": "promote",
+          "path": [
+            "vibe",
+            "todos",
+            "promote"
+          ],
+          "description": "Promote harvested TODOs onto the Board. Omit the fingerprint to pick one with TAB.",
+          "usage": "[options] [fingerprints...]",
+          "arguments": [
+            {
+              "name": "fingerprints",
+              "description": "",
+              "required": false,
+              "variadic": true
+            }
+          ],
+          "options": [
+            {
+              "flags": "--title <title>",
+              "description": "override the card title (single selection only)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--priority <priority>",
+              "description": "override the card priority: low | medium | high",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "dismiss",
+          "path": [
+            "vibe",
+            "todos",
+            "dismiss"
+          ],
+          "description": "Set TODOs aside so later scans stop offering them. Reversible with `undismiss`.",
+          "usage": "[options] [fingerprints...]",
+          "arguments": [
+            {
+              "name": "fingerprints",
+              "description": "",
+              "required": false,
+              "variadic": true
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "undismiss",
+          "path": [
+            "vibe",
+            "todos",
+            "undismiss"
+          ],
+          "description": "Bring dismissed TODOs back into the review list.",
+          "usage": "[options] [fingerprints...]",
+          "arguments": [
+            {
+              "name": "fingerprints",
+              "description": "",
+              "required": false,
+              "variadic": true
+            }
+          ],
           "options": [],
           "subcommands": []
         }

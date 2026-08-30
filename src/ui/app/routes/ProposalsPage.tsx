@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, Compass, FileText } from "lucide-react";
+import { CheckCircle2, Compass, FileText, ListTodo } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
   ProposalDryRunResponse,
@@ -37,8 +37,10 @@ function proposalOrigin(id: string): { label: string; tone: string } {
 
 export function ProposalsPage({
   onOpenProposal,
+  onOpenTodos,
 }: {
   onOpenProposal: (id: string) => void;
+  onOpenTodos: () => void;
 }) {
   const [proposals, setProposals] = useState<ProposalSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +50,7 @@ export function ProposalsPage({
   // An empty list before the first read is not "no proposals yet", and the
   // zero-state told the user to describe a goal they may already have one for.
   const [loaded, setLoaded] = useState(false);
+  const [todoCount, setTodoCount] = useState<number | null>(null);
 
   async function load() {
     try {
@@ -57,6 +60,13 @@ export function ProposalsPage({
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoaded(true);
+    }
+    // Independent of the proposal list: harvested TODOs are a second kind of
+    // thing waiting for review, and a scan that has never run is not an error.
+    try {
+      setTodoCount((await api.getTodos()).counts.promotable);
+    } catch {
+      setTodoCount(null);
     }
   }
 
@@ -159,6 +169,33 @@ export function ProposalsPage({
             }
           />
         </Cell>
+
+        {todoCount !== null && todoCount > 0 ? (
+          <Cell size="card">
+            <button
+              type="button"
+              onClick={onOpenTodos}
+              className="flex h-full w-full flex-col gap-2.5 rounded-[16px] border border-[color:var(--line)] bg-coal-600 p-4 text-left transition hover:border-violet-soft/40 hover:bg-coal-500"
+            >
+              <div className="flex items-center gap-2">
+                <ListTodo
+                  className="h-4 w-4 shrink-0 text-amber-soft"
+                  strokeWidth={1.6}
+                />
+                <span className="min-w-0 flex-1 truncate text-[13px] text-chalk-100">
+                  TODOs in your code
+                </span>
+              </div>
+              <div className="flex flex-wrap items-stretch gap-1">
+                <StatTile value="From your code" label="origin" />
+                <StatTile value={todoCount} label="to review" />
+              </div>
+              <span className="mt-auto border-t border-[color:var(--line-soft)] pt-2.5 text-[12px] text-chalk-300">
+                Markers `vibe learn` found. Promoting one creates its card.
+              </span>
+            </button>
+          </Cell>
+        ) : null}
 
         {!loaded ? (
           <Cell size="full" reason="nested-deck">

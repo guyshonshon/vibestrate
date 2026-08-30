@@ -269,6 +269,7 @@ export class ProposalService {
       supervised: { state: "idle", halt: null, invariants: [], pendingRevision: null },
       runOptions: { budget: { maxSpendUsd: null, maxSteps: null } },
       roadmapItemId: null,
+      source: null,
       title: t.title,
       description: t.description,
       acceptanceCriteria: t.acceptanceCriteria,

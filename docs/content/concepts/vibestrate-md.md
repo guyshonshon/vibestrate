@@ -137,6 +137,8 @@ It has a screen of its own: **Codebase**, then the **Map** chip above the file t
 
 It also refreshes itself whenever a run reaches a terminal outcome. `vibe learn` regenerates it from a terminal; `vibe learn show` prints `CODEBASE.md` with the same staleness note.
 
+The same scan collects your codebase's `TODO` and `FIXME` comments. Those are a third kind of memory again: not your authored intent and not a fact about the project's shape, but *candidate work* your team already wrote down. They are kept out of the map itself - it carries only the counts - and live in `.vibestrate/roadmap/todos/`, because the roadmap is what consumes them. Nothing reaches the Board without an explicit promote. See [Picking up a project already underway](/docs/getting-started/existing-project).
+
 ## Who gets the map
 
 The planner, by default, and only the planner. That is deliberate: every other role stands *in* the worktree, holding a plan that already names the files, running an agent CLI that opens them natively. A generated summary costs those roles tokens every turn and gives them a second, staler account of a repo they can already read. The planner has to name real files *before* it has read anything, which is why it is the exception.

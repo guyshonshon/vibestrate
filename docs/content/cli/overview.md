@@ -188,7 +188,17 @@ supervised.supervisor.enabled
 ```bash
 vibe learn        # regenerate the codebase map
 vibe learn show   # print the current CODEBASE.md
+vibe learn todos  # the TODO counts from the last scan
+
+vibe todos                          # the markers worth reviewing
+vibe todos promote <fingerprint>    # make one a card (TAB completes)
+vibe todos dismiss <fingerprint>    # stop offering it
+vibe todos undismiss <fingerprint>  # bring it back
 ```
+
+It also collects the `TODO`, `FIXME`, `HACK`, `XXX` and `BUG` comments in your code, which `vibe todos` turns into a review list you can promote onto the Board. On a project that's already underway, that's usually the fastest way to fill an empty Board - see [Picking up a project already underway](/docs/getting-started/existing-project).
+
+Leave the fingerprint off and press TAB to pick from the list. Promoting is always explicit: a marker becomes a card only when you say so, and the card remembers the `file:line` it came from, so re-running `vibe learn` never offers it twice.
 
 `vibe init` runs it at the end, where a failure is a warning rather than a failed init. The scan is deterministic - no model call - and its output is secret-redacted, size-bounded and written atomically. Outside a git repository it degrades honestly: the map records that the layout and route scan was skipped, rather than failing. See [Codebase map](/docs/concepts/vibestrate-md) for what grounds on it.
 

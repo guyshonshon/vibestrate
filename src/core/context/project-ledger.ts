@@ -9,7 +9,6 @@ import {
   vibestrateRoot,
 } from "../../utils/paths.js";
 import { withFileMutex } from "../../utils/file-mutex.js";
-import { writeCodebaseMap } from "../../project/codebase-map.js";
 import { flowArbitrationLedgerSchema } from "../../flows/runtime/flow-arbitration.js";
 import {
   flowEvidenceRefSchema,
@@ -380,7 +379,16 @@ async function appendAndRefresh(
     // planner turn isn't grounded in a stale snapshot. Best-effort: this is a
     // regenerable cache, so a refresh failure must never fail the run whose
     // completion is being recorded.
-    await writeCodebaseMap(projectRoot, now).catch(() => {});
+    //
+    // Deliberately map-only. The TODO harvest is NOT rescanned here: it grounds
+    // no prompt, it is read on demand, and it already reports its own staleness,
+    // so a full-tree grep per run completion would be cost with no consumer.
+    // `vibe learn` (and the dashboard's refresh) rescan it. The existing counts
+    // are carried through so the map does not blank them.
+    const { refreshCodebaseMapOnly } = await import(
+      "../../project/project-scan.js"
+    );
+    await refreshCodebaseMapOnly(projectRoot, now).catch(() => {});
   }
 }
 
