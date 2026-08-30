@@ -49,11 +49,13 @@ function printSummary(scan: ProjectScanResult): void {
   if (map.todos) {
     console.log(indent(`TODOs: ${renderTodoSummaryLine(map.todos)}`));
     if (scan.promotable > 0) {
-      console.log(
-        indent(
-          `${symbol.arrow()} ${scan.promotable} ready to review: ${color.bold("vibe todos")}`,
-        ),
-      );
+      // Deliberately no count here. `promotableCount` counts high-signal
+      // markers in the harvest; it knows nothing about the ledger, so once a
+      // marker is on the board or dismissed it over-reports - a scan of three
+      // markers with one already promoted announced "3 ready to review" while
+      // `vibe todos` correctly showed 2. The ledger belongs to the command that
+      // owns it, and this is the scan summary.
+      console.log(indent(`${symbol.arrow()} Review them: ${color.bold("vibe todos")}`));
     }
   }
   if (scan.harvestError) {
