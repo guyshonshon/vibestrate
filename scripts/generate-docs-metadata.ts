@@ -42,7 +42,13 @@ import { TERMINAL_STATUSES } from "../src/core/workflow/workflow-types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
-const outDir = resolve(repoRoot, "docs", "generated");
+// Overridable so a test can render the same bytes somewhere else and compare
+// them against the committed files without touching the working tree. Nothing
+// in normal use sets it; `pnpm docs:generate` writes to docs/generated as
+// before. See tests/docs-generated-drift.test.ts.
+const outDir = process.env.VIBESTRATE_DOCS_OUT
+  ? resolve(process.env.VIBESTRATE_DOCS_OUT)
+  : resolve(repoRoot, "docs", "generated");
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
