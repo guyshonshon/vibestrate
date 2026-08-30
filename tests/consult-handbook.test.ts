@@ -20,6 +20,7 @@ import {
 import { HANDBOOK_CORPUS } from "../src/consult/handbook/handbook-corpus.generated.js";
 import {
   compileHandbook,
+  renderCorpusModule,
   distillMarkdown,
   fitFencedTree,
   HANDBOOK_BODY_MAX_BYTES,
@@ -28,6 +29,9 @@ import {
 } from "../src/consult/handbook/handbook-compile.js";
 import { readHandbookSources } from "../src/consult/handbook/handbook-sources.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
+
+const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+const CORPUS_REL_PATH = "src/consult/handbook/handbook-corpus.generated.ts";
 
 const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });
 
@@ -44,6 +48,46 @@ describe("handbook corpus", () => {
     const recompiled = compileHandbook(await readHandbookSources());
     expect(recompiled).toEqual(HANDBOOK_CORPUS);
   });
+
+  it("the COMMITTED corpus reproduces from the COMMITTED docs", async () => {
+    // The check above compares against the working tree, which is what CI sees
+    // and is enough there. Locally it is not: regenerate the corpus, forget to
+    // stage it, commit the docs anyway, and the suite stays green while HEAD
+    // carries a corpus describing a docs set that no longer exists. That is
+    // exactly how a merge shipped a handbook with no `vibe todos` in it.
+    //
+    // So this one asks the question the other cannot: does what is COMMITTED
+    // still agree with itself? Both sides come from HEAD, so it never fires on
+    // work in progress.
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-handbook-head-"));
+    try {
+      const tar = path.join(tmp, "docs.tar");
+      try {
+        const archived = await execa("git", ["archive", "HEAD", "docs"], {
+          cwd: repoRoot,
+          encoding: "buffer",
+        });
+        await fs.writeFile(tar, archived.stdout);
+      } catch {
+        // No git (a source tarball) means there is no committed state to
+        // compare against. Skipping is the honest answer, not a pass.
+        return;
+      }
+      await execa("tar", ["-xf", tar, "-C", tmp]);
+
+      const expected = renderCorpusModule(compileHandbook(await readHandbookSources(tmp)));
+      const committed = (
+        await execa("git", ["show", `HEAD:${CORPUS_REL_PATH}`], { cwd: repoRoot })
+      ).stdout;
+
+      expect(
+        committed.trimEnd(),
+        "the committed handbook corpus is stale - run `tsx src/consult/handbook/build-handbook.ts` and commit it",
+      ).toBe(expected.trimEnd());
+    } finally {
+      await fs.rm(tmp, { recursive: true, force: true });
+    }
+  }, 120_000);
 
   it("declares the schema version the retriever expects", () => {
     expect(HANDBOOK_CORPUS.schemaVersion).toBe(HANDBOOK_SCHEMA_VERSION);
