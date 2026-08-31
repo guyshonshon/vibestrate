@@ -165,6 +165,64 @@ describe("Flow Phase 8 context builder", () => {
     expect(joined).not.toContain("Summary for plan:");
   });
 
+  it("does not summarize a handoff that fits the step's context budget", () => {
+    // The invariant step 1 introduced. Each of these is far over the retired
+    // 1800-byte threshold, so the old builder summarized all of them; together
+    // they are ~5K tokens against a 32K budget, which is not a reason to lose
+    // anything. Measured on a real twelve-step run, the old thresholds
+    // summarized 34 of 51 inputs to reclaim under 1% of a 200K window.
+    const s = snapshot("balanced");
+    const step = s.steps.find((candidate) => candidate.id === "challenge-response")!;
+    const findings = "A specific finding that the reviewer must see in full.\n".repeat(120);
+    const result = buildFlowContextPacket({
+      snapshot: s,
+      step,
+      contextMode: "stateless",
+      outputs: new Map([
+        ["findings", output("findings", findings)],
+        ["diff", output("diff", JSON.stringify({ totals: { files: 1, insertions: 3, deletions: 0 }, files: [{ path: "src/x.ts" }] }))],
+        ["validation", output("validation", JSON.stringify({ summary: { total: 1, passed: 1, failed: 0 }, commands: [] }))],
+      ]),
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+
+    expect(result.packet.budget.summarizedInputs).toBe(0);
+    expect(result.packet.budget.estimatedTokensSaved).toBe(0);
+    expect(result.packet.budget.promptEstimatedTokens).toBeLessThan(
+      result.packet.budget.budgetTokens,
+    );
+    // Not merely "a summary was avoided" - the exact bytes reached the step.
+    expect(result.priorArtifacts.map((a) => a.content).join("\n")).toContain(
+      findings.trim(),
+    );
+  });
+
+  it("summarizes largest-first, and only once the budget is genuinely exceeded", () => {
+    const s = snapshot("balanced");
+    const step = s.steps.find((candidate) => candidate.id === "challenge-response")!;
+    const huge = "an oversized finding line that must be cut\n".repeat(40_000);
+    const small = "a small note that still fits\n".repeat(5);
+    const result = buildFlowContextPacket({
+      snapshot: s,
+      step,
+      contextMode: "stateless",
+      contextBudgetTokens: 5_000,
+      outputs: new Map([
+        ["findings", output("findings", huge)],
+        ["diff", output("diff", small)],
+        ["validation", output("validation", small)],
+      ]),
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+
+    const byToken = new Map(result.packet.inputs.map((i) => [i.token, i]));
+    // The one that blew the budget is cut; the two that did not are untouched.
+    expect(byToken.get("findings")?.disposition).toBe("embedded-summary");
+    expect(byToken.get("diff")?.disposition).toBe("embedded-full");
+    expect(byToken.get("validation")?.disposition).toBe("embedded-full");
+    expect(result.packet.budget.promptEstimatedTokens).toBeLessThanOrEqual(5_000);
+  });
+
   it("does not replay full prior artifacts into a reused participant session", () => {
     const s = snapshot("artifact-heavy");
     const step = s.steps.find((candidate) => candidate.id === "challenge-response")!;

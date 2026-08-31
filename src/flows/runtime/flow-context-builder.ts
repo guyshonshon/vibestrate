@@ -72,6 +72,8 @@ export type FlowContextPacket = {
     sourceEstimatedTokens: number;
     promptEstimatedTokens: number;
     estimatedTokensSaved: number;
+    /** The ceiling this packet was fitted to. Nothing is summarized below it. */
+    budgetTokens: number;
   };
   inputs: FlowContextPacketInput[];
 };
@@ -103,6 +105,12 @@ export type BuildFlowContextPacketInput = {
    * root makes the reference openable. Absent => the old relative reference.
    */
   artifactRoot?: string;
+  /**
+   * Tokens this step's prior-artifact block may occupy before anything is
+   * summarized. Absent => DEFAULT_CONTEXT_BUDGET_TOKENS. Set it lower for a
+   * small-context provider; `compact` policy divides whatever it resolves to.
+   */
+  contextBudgetTokens?: number;
 };
 
 export type BuildFlowContextPacketResult = {
@@ -110,18 +118,54 @@ export type BuildFlowContextPacketResult = {
   packet: FlowContextPacket;
 };
 
-const TASK_BRIEF_FULL_BYTES = 1_500;
-const COMPACT_SUMMARY_CHARS = 700;
-const BALANCED_FULL_BYTES = 1_800;
-const BALANCED_SUMMARY_CHARS = 1_400;
-const REUSED_SUMMARY_CHARS = 900;
 const APPROX_CHARS_PER_TOKEN = 4;
+
+/**
+ * How many tokens one step's prior-artifact block may occupy before anything is
+ * summarised.
+ *
+ * This replaces four fixed byte thresholds (1800/1400/900/700) that decided each
+ * handoff in isolation, with no idea what the model's context actually was. On a
+ * 200K-token model that traded information for nothing: measured over a real
+ * twelve-step run, 34 of 51 inputs were summarised to save 6,812 estimated
+ * tokens, and the single largest prompt in the whole run was 14KB - about 1.75%
+ * of the window. Two thirds of every handoff was compressed to reclaim under one
+ * percent of a context that was never close to full.
+ *
+ * 32K leaves ~168K on a 200K model for the system prompt, the step's own
+ * instructions and the response. Lower it for a small-context provider via
+ * `contextBudgetTokens`; `compact` halves it again.
+ */
+const DEFAULT_CONTEXT_BUDGET_TOKENS = 32_000;
+/**
+ * `compact` is chosen for genuinely constrained contexts, so it gets an
+ * absolute ceiling rather than a fraction of the default. 2K tokens is roughly
+ * 8KB of prior artifacts - small enough that the policy means what its name
+ * says on an 8K or 16K model, instead of quietly behaving like `balanced`.
+ */
+const COMPACT_CONTEXT_BUDGET_TOKENS = 2_000;
+
+/** Chars a downgraded input is summarised to once the budget is genuinely hit. */
+const OVER_BUDGET_SUMMARY_CHARS = 4_000;
+
+/** A reused session already holds the artifact; it gets a delta, not a replay. */
+const REUSED_SUMMARY_CHARS = 900;
 
 export function buildFlowContextPacket(
   input: BuildFlowContextPacketInput,
 ): BuildFlowContextPacketResult {
-  const priorArtifacts: FlowPromptArtifact[] = [];
   const packetInputs: FlowContextPacketInput[] = [];
+  // Decided whole first, then shrunk only if the assembled packet exceeds the
+  // budget. Kept alongside each entry so a downgrade can re-render it.
+  const carried: {
+    token: string;
+    output: FlowContextOutput;
+    forced: boolean;
+    /** The body policy decided on, kept so a re-render cannot recompute it
+     *  with the wrong budget and silently change what the step is told. */
+    body: string;
+    index: number;
+  }[] = [];
 
   for (const token of input.step.inputs) {
     const output = input.outputs.get(token) ?? null;
@@ -143,7 +187,7 @@ export function buildFlowContextPacket(
       continue;
     }
 
-    let decision = decideContextInclusion({
+    const decision = decideContextInclusion({
       token,
       content: output.content,
       artifactPath: output.artifactPath,
@@ -151,52 +195,20 @@ export function buildFlowContextPacket(
       contextMode: input.contextMode,
       forceFull: input.forceFullTokens?.has(token) ?? false,
     });
-    // Summary-overhead guard: the embedded-summary wrapper (artifact-path header
-    // + "exact content available" footer) can out-cost its savings on small
-    // artifacts, making the "summary" larger than just embedding the trimmed
-    // source. When that happens - and we're not in `reused` mode, where the
-    // summary is a deliberate delta against a live session, not a size play -
-    // embed full instead. Tokens only go down or stay equal; content is more
-    // faithful (no tail-clip). Measured: 40% of inputs hit this case.
-    if (
-      decision.disposition === "embedded-summary" &&
-      input.contextMode !== "reused"
-    ) {
-      const fullBody = output.content.trim();
-      const summaryBytes = bytes(
-        renderPromptContent({
-          artifactRoot: input.artifactRoot,
-          output,
-          disposition: "embedded-summary",
-          body: decision.body,
-        }),
-      );
-      const fullBytes = bytes(
-        renderPromptContent({
-          artifactRoot: input.artifactRoot,
-          output,
-          disposition: "embedded-full",
-          body: fullBody,
-        }),
-      );
-      if (fullBytes <= summaryBytes) {
-        decision = {
-          disposition: "embedded-full",
-          body: fullBody,
-          reason:
-            "Summary would not shrink the prompt (wrapper out-costs the saving), so the full artifact was embedded instead.",
-        };
-      }
-    }
     const promptContent = renderPromptContent({
       artifactRoot: input.artifactRoot,
       output,
       disposition: decision.disposition,
       body: decision.body,
     });
-    const sourceBytes = bytes(output.content);
-    const promptBytes = bytes(promptContent);
 
+    carried.push({
+      token,
+      output,
+      forced: decision.pinned,
+      body: decision.body,
+      index: packetInputs.length,
+    });
     packetInputs.push({
       token,
       label: output.label,
@@ -204,18 +216,37 @@ export function buildFlowContextPacket(
       available: true,
       disposition: decision.disposition,
       reason: decision.reason,
-      sourceBytes,
+      sourceBytes: bytes(output.content),
       sourceEstimatedTokens: estimateTokens(output.content),
-      promptBytes,
+      promptBytes: bytes(promptContent),
       promptEstimatedTokens: estimateTokens(promptContent),
       contentSha256: sha256(output.content),
       promptContentSha256: sha256(promptContent),
     });
-    priorArtifacts.push({
-      label: `${output.label} [${token}; ${decision.disposition}]`,
-      content: promptContent,
-    });
   }
+
+  fitToBudget({
+    packetInputs,
+    carried,
+    artifactRoot: input.artifactRoot,
+    budgetTokens: budgetFor(input),
+  });
+
+  const priorArtifacts: FlowPromptArtifact[] = carried.map((entry) => {
+    const item = packetInputs[entry.index]!;
+    // `carried` only ever holds available outputs, so this cannot be
+    // omitted-unavailable. Throwing rather than casting keeps that an
+    // invariant the type system enforces instead of a comment.
+    if (item.disposition === "omitted-unavailable") {
+      throw new Error(
+        `Flow context packet: ${entry.token} was carried as available but resolved to omitted-unavailable.`,
+      );
+    }
+    return {
+      label: `${entry.output.label} [${entry.token}; ${item.disposition}]`,
+      content: renderedFor(entry, item.disposition, input.artifactRoot),
+    };
+  });
 
   const sourceBytes = sum(packetInputs, (item) => item.sourceBytes);
   const promptBytes = sum(packetInputs, (item) => item.promptBytes);
@@ -258,12 +289,106 @@ export function buildFlowContextPacket(
           0,
           sourceEstimatedTokens - promptEstimatedTokens,
         ),
+        budgetTokens: budgetFor(input),
       },
       inputs: packetInputs,
     },
   };
 }
 
+/** The token ceiling for this step's prior-artifact block. */
+function budgetFor(input: BuildFlowContextPacketInput): number {
+  if (input.contextBudgetTokens !== undefined) return input.contextBudgetTokens;
+  return input.snapshot.contextPolicy === "compact"
+    ? COMPACT_CONTEXT_BUDGET_TOKENS
+    : DEFAULT_CONTEXT_BUDGET_TOKENS;
+}
+
+/**
+ * Render an entry. `downgrade` is the budget pass asking what a summary WOULD
+ * cost; everything else re-renders the body policy already decided, so a reused
+ * session's 900-char delta is not silently re-cut at the over-budget width.
+ */
+function renderedFor(
+  entry: { token: string; output: FlowContextOutput; body: string },
+  disposition: Exclude<FlowContextDisposition, "omitted-unavailable">,
+  artifactRoot: string | undefined,
+  downgrade = false,
+): string {
+  const body = downgrade
+    ? summarizeContent(entry.token, entry.output.content, OVER_BUDGET_SUMMARY_CHARS)
+    : entry.body;
+  return renderPromptContent({
+    artifactRoot,
+    output: entry.output,
+    disposition,
+    body,
+  });
+}
+
+/**
+ * Shrink the packet ONLY if it genuinely exceeds the step's token budget, and
+ * only as far as it has to. Largest source first, so one oversized artifact is
+ * cut before three small ones. Forced inputs are never downgraded: a
+ * preference-gate reviewer that cannot see the line under review is worse than
+ * an over-budget prompt, and the caller asked for exactness explicitly.
+ *
+ * A downgrade that does not actually shrink the rendered block is reverted: the
+ * summary wrapper (artifact-path header plus the "exact content available"
+ * footer) can out-cost its own saving on a small artifact, which would lose the
+ * tail of the content for nothing.
+ */
+function fitToBudget(args: {
+  packetInputs: FlowContextPacketInput[];
+  carried: {
+    token: string;
+    output: FlowContextOutput;
+    forced: boolean;
+    body: string;
+    index: number;
+  }[];
+  artifactRoot: string | undefined;
+  budgetTokens: number;
+}): void {
+  const total = () =>
+    args.packetInputs.reduce((n, item) => n + item.promptEstimatedTokens, 0);
+  if (total() <= args.budgetTokens) return;
+
+  const order = [...args.carried]
+    .filter((entry) => !entry.forced)
+    .sort(
+      (a, b) =>
+        args.packetInputs[b.index]!.promptEstimatedTokens -
+        args.packetInputs[a.index]!.promptEstimatedTokens,
+    );
+
+  for (const entry of order) {
+    if (total() <= args.budgetTokens) return;
+    const item = args.packetInputs[entry.index]!;
+    const rendered = renderedFor(entry, "embedded-summary", args.artifactRoot, true);
+    const summaryBytes = bytes(rendered);
+    if (summaryBytes >= item.promptBytes) continue; // wrapper out-costs the saving
+    args.packetInputs[entry.index] = {
+      ...item,
+      disposition: "embedded-summary",
+      reason: `Packet exceeded the step's ${args.budgetTokens}-token context budget, so the largest artifacts were summarized first. The exact artifact reference is retained.`,
+      promptBytes: summaryBytes,
+      promptEstimatedTokens: estimateTokens(rendered),
+      promptContentSha256: sha256(rendered),
+    };
+    entry.body = summarizeContent(
+      entry.token,
+      entry.output.content,
+      OVER_BUDGET_SUMMARY_CHARS,
+    );
+  }
+}
+
+/**
+ * What this input WANTS to be, from policy alone. Size is deliberately not
+ * consulted here: whether the packet actually fits is a property of the whole
+ * packet, not of one input, and it is decided once in fitToBudget below.
+ */
 function decideContextInclusion(input: {
   token: string;
   content: string;
@@ -273,71 +398,53 @@ function decideContextInclusion(input: {
   forceFull: boolean;
 }): {
   disposition: Exclude<FlowContextDisposition, "omitted-unavailable">;
+  /** Policy decided this one; the budget pass must not touch it. */
+  pinned: boolean;
   body: string;
   reason: string;
 } {
-  const sourceBytes = bytes(input.content);
-
-  // A caller that needs the exact artifact (preference-gate review) overrides every
-  // size/policy heuristic - a summarized diff would hide the very line under review.
+  // A caller that needs the exact artifact (preference-gate review) overrides
+  // everything - a summarized diff would hide the very line under review.
   if (input.forceFull) {
     return {
       disposition: "embedded-full",
+      pinned: true,
       body: input.content.trim(),
       reason: "Preference-gate review requires the exact artifact (forced full).",
     };
   }
 
+  // A reused participant session already carries the artifact in its own
+  // transcript. Sending it again whole duplicates it rather than informing the
+  // model, so reuse gets a delta summary plus the artifact reference. This is
+  // not the fixed-size compression the budget model replaced - it is about not
+  // repeating yourself to a session that was there.
   if (input.contextMode === "reused" && input.token !== "task-brief") {
     return {
       disposition: "embedded-summary",
+      pinned: true,
       body: summarizeContent(input.token, input.content, REUSED_SUMMARY_CHARS),
       reason:
         "Participant session was reused, so Vibestrate sent a delta summary plus artifact reference instead of replaying the full artifact.",
     };
   }
 
-  if (
-    input.token === "task-brief" &&
-    sourceBytes <= TASK_BRIEF_FULL_BYTES
-  ) {
-    return {
-      disposition: "embedded-full",
-      body: input.content.trim(),
-      reason: "Task brief is small and needed by every step.",
-    };
-  }
-
   if (input.contextPolicy === "artifact-heavy") {
     return {
       disposition: "embedded-full",
+      pinned: true,
       body: input.content.trim(),
       reason: "artifact-heavy policy embeds the full selected artifact.",
     };
   }
 
-  if (input.contextPolicy === "compact") {
-    return {
-      disposition: "embedded-summary",
-      body: summarizeContent(input.token, input.content, COMPACT_SUMMARY_CHARS),
-      reason:
-        "compact policy sends a summary and artifact reference to reduce prompt size.",
-    };
-  }
-
-  if (sourceBytes <= BALANCED_FULL_BYTES && !isBulkyToken(input.token)) {
-    return {
-      disposition: "embedded-full",
-      body: input.content.trim(),
-      reason: "balanced policy embeds small non-bulky artifacts exactly.",
-    };
-  }
-
+  // Everything else starts whole. It stays whole unless the assembled packet
+  // exceeds the step's token budget.
   return {
-    disposition: "embedded-summary",
-    body: summarizeContent(input.token, input.content, BALANCED_SUMMARY_CHARS),
-    reason:
-      "balanced policy summarized a bulky or large artifact and retained the exact artifact reference.",
+    disposition: "embedded-full",
+    pinned: false,
+    body: input.content.trim(),
+    reason: "Embedded whole: the packet fits the step's context budget.",
   };
 }
 
