@@ -263,6 +263,23 @@ export const flowStepSchema = z
     kind: flowStepKindSchema,
     seat: flowTokenSchema.optional(),
     inputs: z.array(flowTokenSchema).default([]),
+    /**
+     * Inputs this step cannot do its job without. A required input is delivered
+     * WHOLE or the step fails closed naming it - it is never summarized to fit
+     * a budget and never silently omitted.
+     *
+     * Additive and opt-in: a token here must also appear in `inputs`, and a
+     * flow that declares none behaves exactly as before. It is not simply
+     * "everything in `inputs`" because a loop's first pass legitimately runs
+     * before its own later outputs exist (see catalog/flows/core.ts), and
+     * making those required would fail every loop flow on entry.
+     *
+     * The failure this closes: a reviewer told "the exact content is available
+     * in the artifact above" while holding a summary of the diff it is meant to
+     * be reviewing. One instance of that was fixed by passing the artifact
+     * root; this makes the whole class impossible.
+     */
+    requiredInputs: z.array(flowTokenSchema).default([]),
     outputs: z.array(flowTokenSchema).default([]),
     // Explicit DAG edges: the step ids this step depends on. Empty (the
     // default) means today's linear flow -
@@ -342,7 +359,20 @@ export const flowStepSchema = z
     // at loadSkills (same as a run-level skill typo). Restricted to turn kinds.
     skills: z.array(skillReferenceSchema).max(32).default([]),
   })
-  .strict();
+  .strict()
+  .superRefine((step, ctx) => {
+    // A required input the step never receives is the contract silently doing
+    // nothing, so the mismatch is rejected at load rather than at run time.
+    const declared = new Set(step.inputs);
+    for (const token of step.requiredInputs) {
+      if (declared.has(token)) continue;
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["requiredInputs"],
+        message: `Flow step "${step.id}" requires "${token}" but does not declare it in \`inputs\`, so it would never be delivered. Add it to \`inputs\` or drop it from \`requiredInputs\`.`,
+      });
+    }
+  });
 export type FlowStep = z.infer<typeof flowStepSchema>;
 
 // Adaptive loop: re-run a contiguous body of steps while a review-turn's
@@ -937,6 +967,8 @@ export const resolvedFlowStepSchema = z
     profileId: z.string().min(1).nullable(),
     providerId: z.string().min(1).nullable(),
     inputs: z.array(flowTokenSchema),
+    /** Inputs that must arrive whole; the step fails closed otherwise. */
+    requiredInputs: z.array(flowTokenSchema).default([]),
     outputs: z.array(flowTokenSchema),
     // DAG dependencies. Source step ids - graph flows reject `repeat`
     // and loop/checklist, so resolved ids equal source ids and these carry over

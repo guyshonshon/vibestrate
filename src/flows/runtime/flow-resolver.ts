@@ -360,6 +360,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
         profileId,
         providerId,
         inputs: step.inputs,
+        requiredInputs: step.requiredInputs,
         outputs: step.outputs,
         needs: step.needs,
         instructions: step.instructions ?? null,

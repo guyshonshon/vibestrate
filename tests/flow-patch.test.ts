@@ -320,8 +320,8 @@ describe("replaceSteps / replaceSeats (structural edits)", () => {
     const seat = Object.keys(base.seats)[0]!;
     const verdict = mergeFlowPatch(base, {
       replaceSteps: [
-        { id: "plan", label: "Plan", kind: "agent-turn", seat, inputs: [], outputs: [], needs: [], optional: false, skipWhenReadOnly: false, cleanRoom: false, continueOnError: false, retries: 0, skills: [] },
-        { id: "review", label: "Review", kind: "review-turn", seat, inputs: [], outputs: [], needs: [], optional: false, skipWhenReadOnly: false, cleanRoom: false, continueOnError: false, retries: 0, skills: [] },
+        { id: "plan", label: "Plan", kind: "agent-turn", seat, inputs: [], requiredInputs: [], outputs: [], needs: [], optional: false, skipWhenReadOnly: false, cleanRoom: false, continueOnError: false, retries: 0, skills: [] },
+        { id: "review", label: "Review", kind: "review-turn", seat, inputs: [], requiredInputs: [], outputs: [], needs: [], optional: false, skipWhenReadOnly: false, cleanRoom: false, continueOnError: false, retries: 0, skills: [] },
       ],
     });
     if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
@@ -333,7 +333,7 @@ describe("replaceSteps / replaceSeats (structural edits)", () => {
     const verdict = mergeFlowPatch(base, {
       replaceSeats: { solo: { label: "Solo" } },
       replaceSteps: [
-        { id: "do", label: "Do", kind: "agent-turn", seat: "solo", inputs: [], outputs: [], needs: [], optional: false, skipWhenReadOnly: false, cleanRoom: false, continueOnError: false, retries: 0, skills: [] },
+        { id: "do", label: "Do", kind: "agent-turn", seat: "solo", inputs: [], requiredInputs: [], outputs: [], needs: [], optional: false, skipWhenReadOnly: false, cleanRoom: false, continueOnError: false, retries: 0, skills: [] },
       ],
     });
     if (!verdict.ok) throw new Error(verdict.reasons.join(", "));

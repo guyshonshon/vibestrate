@@ -114,6 +114,29 @@ export function renderFlowStepNotes(input: {
     .join("\n");
 }
 
+/**
+ * A step declared an input it cannot work without and the packet could not
+ * deliver it whole.
+ *
+ * This is thrown rather than logged because the alternative is the failure it
+ * exists to prevent: a turn that runs anyway, holding a summary of the artifact
+ * it was told to treat as exact. One instance of that shipped (a reviewer given
+ * a run-relative path it could not open, next to a summary it was told not to
+ * trust); the contract makes the class impossible instead of fixing instances.
+ */
+export class FlowInputContractError extends Error {
+  readonly stepId: string;
+  readonly violations: readonly { token: string; reason: string }[];
+  constructor(stepId: string, violations: readonly { token: string; reason: string }[]) {
+    super(
+      `Flow step "${stepId}" cannot run: ${violations.map((v) => v.reason).join(" ")}`,
+    );
+    this.name = "FlowInputContractError";
+    this.stepId = stepId;
+    this.violations = violations;
+  }
+}
+
 export async function buildFlowContextPacket(input: {
   snapshot: ResolvedFlowSnapshot;
   step: ResolvedFlowStep;
@@ -142,6 +165,12 @@ export async function buildFlowContextPacket(input: {
     path.posix.join("flows", input.step.id, "context-packet.json"),
     built.packet,
   );
+  // FAIL CLOSED, here rather than at each call site, so no caller can forget.
+  // The packet is written first on purpose: the artifact is the evidence of
+  // what the contract was and what it got, and it has to survive the throw.
+  if (built.packet.contractViolations.length > 0) {
+    throw new FlowInputContractError(input.step.id, built.packet.contractViolations);
+  }
   return {
     priorArtifacts: built.priorArtifacts,
     contextPacketPath: input.artifactStore.relPath(absPath),

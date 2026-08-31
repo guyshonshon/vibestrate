@@ -75,6 +75,12 @@ export type FlowContextPacket = {
     /** The ceiling this packet was fitted to. Nothing is summarized below it. */
     budgetTokens: number;
   };
+  /**
+   * Required inputs this packet could NOT deliver whole. Non-empty means the
+   * step's contract is unmet and the caller must fail closed rather than send
+   * a turn that is missing something it declared it cannot work without.
+   */
+  contractViolations: { token: string; reason: string }[];
   inputs: FlowContextPacketInput[];
 };
 
@@ -154,6 +160,7 @@ const REUSED_SUMMARY_CHARS = 900;
 export function buildFlowContextPacket(
   input: BuildFlowContextPacketInput,
 ): BuildFlowContextPacketResult {
+  const required = new Set(input.step.requiredInputs ?? []);
   const packetInputs: FlowContextPacketInput[] = [];
   // Decided whole first, then shrunk only if the assembled packet exceeds the
   // budget. Kept alongside each entry so a downgrade can re-render it.
@@ -205,7 +212,10 @@ export function buildFlowContextPacket(
     carried.push({
       token,
       output,
-      forced: decision.pinned,
+      // A required input is pinned exactly like a forced one: the budget pass
+      // may not downgrade it. If the pinned set alone will not fit, that is a
+      // contract violation to report, not a summary to quietly ship.
+      forced: decision.pinned || required.has(token),
       body: decision.body,
       index: packetInputs.length,
     });
@@ -231,6 +241,26 @@ export function buildFlowContextPacket(
     artifactRoot: input.artifactRoot,
     budgetTokens: budgetFor(input),
   });
+
+  // The contract, checked after the budget pass so it sees what was actually
+  // assembled rather than what was intended.
+  const contractViolations: { token: string; reason: string }[] = [];
+  for (const token of required) {
+    const item = packetInputs.find((candidate) => candidate.token === token);
+    if (!item || !item.available) {
+      contractViolations.push({
+        token,
+        reason: `Required input "${token}" has not been produced yet, so this step cannot run.`,
+      });
+      continue;
+    }
+    if (item.disposition !== "embedded-full") {
+      contractViolations.push({
+        token,
+        reason: `Required input "${token}" could not be delivered whole (${item.disposition}). A required input is never summarized; raise the step's context budget or stop requiring it.`,
+      });
+    }
+  }
 
   const priorArtifacts: FlowPromptArtifact[] = carried.map((entry) => {
     const item = packetInputs[entry.index]!;
@@ -291,6 +321,7 @@ export function buildFlowContextPacket(
         ),
         budgetTokens: budgetFor(input),
       },
+      contractViolations,
       inputs: packetInputs,
     },
   };
