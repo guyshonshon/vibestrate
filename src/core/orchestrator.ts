@@ -439,6 +439,35 @@ export class Orchestrator {
    *  the mutable counters/override it owns. Built in the constructor so the
    *  counters live exactly as long as this run. */
   private readonly budgetGovernor: BudgetGovernor;
+  /**
+   * Tokens no step in THIS run will produce, because its producer is skipped.
+   *
+   * A step's input contract is about content arriving degraded, not about a run
+   * shape that never generates it: a read-only run skips the step that outputs
+   * `execution`, so requiring it there is incoherent rather than unmet. The
+   * runner owns that decision (`!enabled || readOnly && skipWhenReadOnly ||
+   * conditionSkips`), so the runner is what tells the packet builder.
+   *
+   * Only tokens produced EXCLUSIVELY by skipped steps qualify. A token another
+   * live step still outputs stays fully under contract.
+   */
+  private unproducibleTokens(
+    steps: readonly { id: string; enabled: boolean; skipWhenReadOnly: boolean; outputs: readonly string[] }[],
+    conditionSkips: ReadonlySet<string>,
+  ): ReadonlySet<string> {
+    const live = new Set<string>();
+    const dead = new Set<string>();
+    for (const step of steps) {
+      const skipped =
+        !step.enabled ||
+        (this.readOnly && step.skipWhenReadOnly) ||
+        conditionSkips.has(step.id);
+      for (const token of step.outputs) (skipped ? dead : live).add(token);
+    }
+    for (const token of live) dead.delete(token);
+    return dead;
+  }
+
   private readonly readOnly: boolean;
   private readonly unattended: boolean;
   private readonly runtimeSkills: string[];
@@ -1588,6 +1617,9 @@ export class Orchestrator {
         outputs: input.outputs,
         artifactStore: input.artifactStore,
         contextMode: "stateless",
+        // Condition-skips are decided per-iteration and are not in scope here,
+        // so those tokens stay fully under contract - the fail-closed direction.
+        unproducibleTokens: this.unproducibleTokens(snapshot.steps, new Set()),
         // Preference-gate review must see the exact diff, not a summary, or it is
         // blind to the line-level violation. Only forced when this is a lensed
         // reviewer turn AND there are preferences to check (else behavior unchanged).
@@ -3218,6 +3250,10 @@ export class Orchestrator {
             outputs,
             artifactStore: input.artifactStore,
             contextMode: preparedTurn?.contextMode ?? "stateless",
+            unproducibleTokens: this.unproducibleTokens(
+              input.snapshot.steps,
+              new Set(),
+            ),
             // Preference-gate review needs the exact diff (not a summary) on the
             // linear walk too. Only forced on a reviewer turn carrying preferences.
             forceFullTokens:

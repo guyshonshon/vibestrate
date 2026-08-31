@@ -144,6 +144,8 @@ export async function buildFlowContextPacket(input: {
   artifactStore: ArtifactStore;
   contextMode: PreparedFlowParticipantTurn["contextMode"];
   forceFullTokens?: ReadonlySet<string>;
+  /** Tokens no step in this run will produce; see the builder's field doc. */
+  unproducibleTokens?: ReadonlySet<string>;
 }): Promise<{
   priorArtifacts: PriorArtifact[];
   contextPacketPath: string;
@@ -159,6 +161,7 @@ export async function buildFlowContextPacket(input: {
     // not resolve. Handing it the absolute root makes "exact content is
     // available in the artifact above" true instead of a dead path.
     artifactRoot: input.artifactStore.rootDir,
+    unproducibleTokens: input.unproducibleTokens,
     generatedAt: nowIso(),
   });
   const absPath = await input.artifactStore.writeJson(

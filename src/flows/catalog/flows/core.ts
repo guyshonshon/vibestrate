@@ -99,21 +99,19 @@ export const defaultFlow = flowDefinitionSchema.parse({
       seat: "reviewer",
       stage: "reviewing",
       inputs: ["task-brief", "plan", "execution", "validation"],
-      // `task-brief` is the standard the review is measured against, and a
-      // review against a summary of the goal is a different review. It is safe
-      // to require because it is the run's own input: every run shape has it.
+      // The reviewer judges what was actually built, against the standard it
+      // was asked for. A summarized `execution` is the failure this contract
+      // exists for - a reviewer told the exact content is available above,
+      // holding a digest of the code it is meant to be reviewing, reporting
+      // findings about work it never saw. `task-brief` is the standard itself;
+      // a review measured against a summary of the goal is a different review.
       //
-      // `execution` is NOT required here, and the reason is worth recording.
-      // It is the input this contract most wants to protect - a reviewer
-      // holding a digest of the code it is meant to be reviewing is the exact
-      // failure - but read-only runs skip the step that produces it, and that
-      // skip is decided by the runner at RUN time, not by the resolver. The
-      // packet builder therefore cannot tell "this run dropped the producer"
-      // (fine) from "the producer ran and produced nothing" (a real violation),
-      // and requiring it fails every read-only run. Requires the runner to pass
-      // its skip set down; until then this would be a contract that breaks a
-      // supported run shape.
-      requiredInputs: ["task-brief"],
+      // Requiring `execution` is only safe because the runner now declares what
+      // its run shape cannot produce: a read-only run skips the step that
+      // outputs it, and that exemption is recorded on the packet rather than
+      // silently applied. `plan` and `validation` stay optional - the loop
+      // re-enters review before either necessarily exists.
+      requiredInputs: ["task-brief", "execution"],
       outputs: ["findings", "review-decision"],
     },
   ],

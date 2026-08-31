@@ -81,6 +81,12 @@ export type FlowContextPacket = {
    * a turn that is missing something it declared it cannot work without.
    */
   contractViolations: { token: string; reason: string }[];
+  /**
+   * Required inputs this run's shape cannot produce, so the contract did not
+   * apply to them. Recorded so a reader can tell "protected and satisfied"
+   * from "not protected here".
+   */
+  exemptedRequirements: string[];
   inputs: FlowContextPacketInput[];
 };
 
@@ -117,6 +123,16 @@ export type BuildFlowContextPacketInput = {
    * small-context provider; `compact` policy divides whatever it resolves to.
    */
   contextBudgetTokens?: number;
+  /**
+   * Tokens no step in THIS run will produce, because the runner skipped their
+   * producer (disabled, read-only, or condition-skipped). A required input in
+   * here is exempt and the exemption is recorded; a required input NOT in here
+   * that is still missing is a real violation.
+   *
+   * Absent => nothing is exempt, which is the fail-closed default: a caller
+   * that does not know what it skipped gets the strict contract.
+   */
+  unproducibleTokens?: ReadonlySet<string>;
 };
 
 export type BuildFlowContextPacketResult = {
@@ -160,7 +176,21 @@ const REUSED_SUMMARY_CHARS = 900;
 export function buildFlowContextPacket(
   input: BuildFlowContextPacketInput,
 ): BuildFlowContextPacketResult {
-  const required = new Set(input.step.requiredInputs ?? []);
+  // A required input this run's shape will NEVER produce is not an unmet
+  // contract - it is a token whose producing step is not in the run at all.
+  // Read-only runs are the case: they skip the step that outputs `execution`,
+  // and that skip is decided by the runner, not the resolver, so the caller has
+  // to say so. Exemptions are recorded on the packet rather than applied
+  // silently, because "the contract did not apply here" is exactly the kind of
+  // thing that should be visible in the artifact.
+  const unproducible = input.unproducibleTokens ?? new Set<string>();
+  const declaredRequired = input.step.requiredInputs ?? [];
+  const exemptedRequirements = declaredRequired.filter((token) =>
+    unproducible.has(token),
+  );
+  const required = new Set(
+    declaredRequired.filter((token) => !unproducible.has(token)),
+  );
   const packetInputs: FlowContextPacketInput[] = [];
   // Decided whole first, then shrunk only if the assembled packet exceeds the
   // budget. Kept alongside each entry so a downgrade can re-render it.
@@ -322,6 +352,7 @@ export function buildFlowContextPacket(
         budgetTokens: budgetFor(input),
       },
       contractViolations,
+      exemptedRequirements,
       inputs: packetInputs,
     },
   };

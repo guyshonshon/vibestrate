@@ -178,4 +178,40 @@ describe("per-step input contracts", () => {
 
     await fs.rm(root, { recursive: true, force: true });
   });
+
+  it("exempts a required input this run's shape cannot produce, and records it", () => {
+    // The read-only case. Nothing in this run outputs `execution`, so requiring
+    // it is incoherent rather than unmet - but the exemption is RECORDED, so a
+    // reader can tell "protected and satisfied" from "not protected here".
+    const s = snapshot();
+    const step = s.steps.find((candidate) => candidate.id === "challenge-response")!;
+    const result = buildFlowContextPacket({
+      snapshot: s,
+      step: { ...step, requiredInputs: ["findings", "execution"] },
+      contextMode: "stateless",
+      unproducibleTokens: new Set(["execution"]),
+      outputs: new Map([["findings", output("findings", "a finding")]]),
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+
+    expect(result.packet.contractViolations).toEqual([]);
+    expect(result.packet.exemptedRequirements).toEqual(["execution"]);
+  });
+
+  it("without a declared skip set, every required input stays under contract", () => {
+    // The fail-closed default: a caller that does not say what it skipped gets
+    // the strict reading, not a free pass.
+    const s = snapshot();
+    const step = s.steps.find((candidate) => candidate.id === "challenge-response")!;
+    const result = buildFlowContextPacket({
+      snapshot: s,
+      step: { ...step, requiredInputs: ["findings", "execution"] },
+      contextMode: "stateless",
+      outputs: new Map([["findings", output("findings", "a finding")]]),
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+
+    expect(result.packet.exemptedRequirements).toEqual([]);
+    expect(result.packet.contractViolations.map((v) => v.token)).toEqual(["execution"]);
+  });
 });
