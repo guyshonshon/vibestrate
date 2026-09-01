@@ -244,4 +244,33 @@ describe("per-step input contracts", () => {
     // optimisation is intact for everything that did not claim a contract.
     expect(byToken.get("diff")?.disposition).toBe("embedded-summary");
   });
+
+  it("a reused session with a required input does not throw through the funnel", async () => {
+    // The exact path that killed a live run: the flow looped, review re-entered
+    // on a reused session, and buildFlowContextPacket in flow-outputs.ts threw
+    // FlowInputContractError because `execution` arrived as a delta summary.
+    //
+    // This asserts at the FUNNEL rather than the builder, because the funnel is
+    // where the throw lives - and it is deterministic, where reproducing the
+    // loop end-to-end depends on a model choosing CHANGES_REQUESTED.
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-reuse-"));
+    const store = new ArtifactStore(root, "loop-otter");
+    await store.init();
+
+    const s = snapshot();
+    const step = s.steps.find((candidate) => candidate.id === "challenge-response")!;
+    const execution = "the code under review\n".repeat(200);
+
+    const built = await buildThroughFunnel({
+      snapshot: s,
+      step: { ...step, requiredInputs: ["findings"] },
+      outputs: new Map([["findings", output("findings", execution)]]),
+      artifactStore: store,
+      contextMode: "reused",
+    });
+
+    // No throw, and the required artifact reached the seat intact.
+    expect(built.priorArtifacts.map((a) => a.content).join("\n")).toContain(execution.trim());
+    await fs.rm(root, { recursive: true, force: true });
+  });
 });
