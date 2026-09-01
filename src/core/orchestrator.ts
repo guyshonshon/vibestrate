@@ -273,6 +273,8 @@ import {
   flowStatusForStep,
   moveToFlowStepStatus,
 } from "./run-engine/flow-run-state.js";
+import { modelContextEngine } from "../supervisor/context-engine-model.js";
+import type { ContextEngine } from "../supervisor/context-engine.js";
 import {
   assessTurnResult,
   buildFlowContextPacket,
@@ -451,6 +453,25 @@ export class Orchestrator {
    * Only tokens produced EXCLUSIVELY by skipped steps qualify. A token another
    * live step still outputs stays fully under contract.
    */
+  /**
+   * The model tier, when the owner has turned it on.
+   *
+   * Gated because it is one model call per seated step. The deterministic tier
+   * is unconditional (it costs nothing); this is what the config switch is
+   * actually for.
+   */
+  private contextEngines(): readonly ContextEngine[] {
+    const cfg = this.config.supervised.supervisor.contextEngine;
+    if (!cfg.enabled) return [];
+    return [
+      modelContextEngine({
+        projectRoot: this.projectRoot,
+        profileId: cfg.profile ?? this.config.supervised.supervisor.profile,
+        signal: this.abortSignal ?? undefined,
+      }),
+    ];
+  }
+
   private unproducibleTokens(
     steps: readonly { id: string; enabled: boolean; skipWhenReadOnly: boolean; outputs: readonly string[] }[],
     conditionSkips: ReadonlySet<string>,
@@ -1621,6 +1642,7 @@ export class Orchestrator {
         // so those tokens stay fully under contract - the fail-closed direction.
         unproducibleTokens: this.unproducibleTokens(snapshot.steps, new Set()),
         task: this.task,
+        engines: this.contextEngines(),
         onInjection: (event) => {
           void input.eventLog.append({
             type: event.type,
@@ -3263,6 +3285,7 @@ export class Orchestrator {
               new Set(),
             ),
             task: this.task,
+            engines: this.contextEngines(),
             onInjection: (event) => {
               void input.eventLog.append({
             type: event.type,
