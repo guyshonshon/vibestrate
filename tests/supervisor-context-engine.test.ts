@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { buildFlowContextPacket as buildThroughFunnel } from "../src/core/run-engine/flow-outputs.js";
+import { ArtifactStore } from "../src/core/stores/artifact-store.js";
 import {
   clampInjections,
   enrichStep,
@@ -245,4 +250,40 @@ describe("supervisor context engine is additive only", () => {
     expect(decision.note).toContain("already declared");
   });
 
+  it("a seatless step is never enriched - nothing there reads a prompt", async () => {
+    // Found by running it, not by a test: the first live run injected into
+    // `validation` (seat=null), which executes a command and never reads a
+    // prompt. 263 bytes nobody would ever see.
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-seatless-"));
+    const store = new ArtifactStore(root, "quiet-otter");
+    await store.init();
+
+    const s = snapshot();
+    const step = s.steps.find((c) => c.id === "challenge-response")!;
+    const built = await buildThroughFunnel({
+      snapshot: s,
+      step: { ...step, seat: null },
+      outputs: new Map([
+        ["architecture", output("architecture", "we chose queues")],
+      ]),
+      artifactStore: store,
+      contextMode: "stateless",
+    });
+    expect(built.priorArtifacts.filter((a) => a.label.includes("supervisor:"))).toEqual([]);
+
+    // The same step WITH a seat does get the manifest, so this is the seat
+    // check doing the work rather than the engine simply finding nothing.
+    const seated = await buildThroughFunnel({
+      snapshot: s,
+      step,
+      outputs: new Map([
+        ["architecture", output("architecture", "we chose queues")],
+      ]),
+      artifactStore: store,
+      contextMode: "stateless",
+    });
+    expect(seated.priorArtifacts.some((a) => a.label.includes("supervisor:"))).toBe(true);
+
+    await fs.rm(root, { recursive: true, force: true });
+  });
 });

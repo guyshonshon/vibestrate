@@ -171,10 +171,14 @@ export async function buildFlowContextPacket(input: {
   // no path that injects without also being checked. The deterministic engine
   // is always in the list: it costs nothing, and the config gate exists to
   // control model SPEND, not to switch off free help.
-  const engines: readonly ContextEngine[] = [
-    deterministicContextEngine,
-    ...(input.engines ?? []),
-  ];
+  // A seatless step (validation, approval gates) runs a command, not a model
+  // turn - nothing there reads a prompt, so an injection is bytes nobody will
+  // ever see. Found by running it: the first live run enriched `validation`,
+  // which has seat=null.
+  const engines: readonly ContextEngine[] =
+    input.step.seat === null
+      ? []
+      : [deterministicContextEngine, ...(input.engines ?? [])];
   const view = viewForStep({
     step: input.step,
     outputs: input.outputs,
