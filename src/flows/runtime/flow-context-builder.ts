@@ -87,12 +87,42 @@ export type FlowContextPacket = {
    * from "not protected here".
    */
   exemptedRequirements: string[];
+  /**
+   * What the Supervisor added to this step, with its stated reason. Recorded on
+   * the packet so an injection is auditable and attributable after the fact -
+   * an addition nobody can see is indistinguishable from a change to the flow.
+   */
+  injections: { source: string; label: string; reason: string; bytes: number }[];
   inputs: FlowContextPacketInput[];
 };
 
 export type FlowPromptArtifact = {
   label: string;
   content: string;
+};
+
+/**
+ * Extra context the Supervisor judged relevant to this step.
+ *
+ * ADDITIVE ONLY, and that is a property of the TYPE rather than a rule anyone
+ * has to follow. An injection is a separate value appended after the declared
+ * inputs; nothing in the injection path holds a reference to `packetInputs`, so
+ * there is no code path - correct, buggy, or malicious - by which an injection
+ * can replace, shrink, or remove an input the step's contract declares. The
+ * contract check runs over `packetInputs` and never sees these.
+ *
+ * That line is the same one triage-turn.ts draws: the Supervisor may make a
+ * turn better informed, and may never make it less scrutinised. A supervisor
+ * that could drop the diff from a reviewer's packet would be a gate held by a
+ * model, which is the objection that makes `block` policies owner-only.
+ */
+export type FlowContextInjection = {
+  /** Where it came from, so an addition is attributable. */
+  source: string;
+  label: string;
+  content: string;
+  /** Why the Supervisor judged it relevant. Recorded, never inferred later. */
+  reason: string;
 };
 
 export type BuildFlowContextPacketInput = {
@@ -133,6 +163,11 @@ export type BuildFlowContextPacketInput = {
    * that does not know what it skipped gets the strict contract.
    */
   unproducibleTokens?: ReadonlySet<string>;
+  /**
+   * Supervisor-supplied extra context. Appended after the declared inputs and
+   * counted in the budget; never substituted for one. See FlowContextInjection.
+   */
+  injections?: readonly FlowContextInjection[];
 };
 
 export type BuildFlowContextPacketResult = {
@@ -308,6 +343,22 @@ export function buildFlowContextPacket(
     };
   });
 
+  // Appended AFTER the declared inputs and after the contract check above, so
+  // an injection can neither satisfy a contract nor displace what satisfies it.
+  // It is extra reading material, in the order the Supervisor supplied it.
+  const injections = (input.injections ?? []).map((injection) => ({
+    source: injection.source,
+    label: injection.label,
+    reason: injection.reason,
+    bytes: bytes(injection.content),
+  }));
+  for (const injection of input.injections ?? []) {
+    priorArtifacts.push({
+      label: `${injection.label} [supervisor:${injection.source}]`,
+      content: injection.content,
+    });
+  }
+
   const sourceBytes = sum(packetInputs, (item) => item.sourceBytes);
   const promptBytes = sum(packetInputs, (item) => item.promptBytes);
   const sourceEstimatedTokens = sum(
@@ -353,6 +404,7 @@ export function buildFlowContextPacket(
       },
       contractViolations,
       exemptedRequirements,
+      injections,
       inputs: packetInputs,
     },
   };

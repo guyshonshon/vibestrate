@@ -377,6 +377,26 @@ export const supervisorConfigSchema = z
     enabled: z.boolean().default(true).describe("Run the between-steps supervisor turn (default on)."),
     profile: z.string().min(1).nullable().default(null).describe("Profile id for the cheap supervisor turn; null = the supervisor role's own profile."),
     roleId: z.string().min(1).default("reviewer").describe("Crew role the supervisor turn runs as (read-only judgment)."),
+    /**
+     * The context engine: a Supervisor session alongside the flow that enriches
+     * each step with context it judges relevant.
+     *
+     * ADDITIVE ONLY - it may add reading material and may never withhold or
+     * shrink what a step's contract declares. That is enforced by the shape of
+     * supervisor/context-engine.ts, which has no channel for a removal, not by
+     * this description.
+     *
+     * DEFAULT OFF, deliberately. It is a model call per step, and on a frontier
+     * profile that is a real cost multiplier on every run. Turning it on is the
+     * owner's decision, not a default they discover on a bill.
+     */
+    contextEngine: z
+      .object({
+        enabled: z.boolean().default(false).describe("Enrich each step with Supervisor-judged context (default OFF; one model call per step)."),
+        profile: z.string().min(1).nullable().default(null).describe("Profile the context engine runs on; null = the supervisor profile. Frontier models earn their cost here - the engine's whole job is judgment about relevance."),
+      })
+      .strict()
+      .prefault({}),
   })
   .strict()
   // .prefault(): {} needs the object's own field defaults to fill in on parse.

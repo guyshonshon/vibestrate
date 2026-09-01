@@ -112,6 +112,10 @@ export type VibestrateEventType =
   // Recorded even when it will not act, so a refusal is visible in the log
   // rather than being an absence a reader has to notice.
   | "supervisor.intervention"
+  // One per piece of context the Supervisor added to a step, carrying its
+  // source, stated reason and size. An addition nobody can see is
+  // indistinguishable from a change to the flow.
+  | "supervisor.context_injection"
   // The run changed a file outside the path scope its architect declared
   // (scope-gate.ts). Deterministic merge-cap, never a model verdict.
   | "supervisor.scope_block"

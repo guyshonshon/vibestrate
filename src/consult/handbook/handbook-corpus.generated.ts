@@ -791,8 +791,8 @@ export const HANDBOOK_CORPUS: HandbookCorpus = {
       "source": "Configuration schema (generated from the Zod schema)",
       "summary": "Keys under `supervised` in .vibestrate/project.yml.",
       "titleTerms": "supervis",
-      "terms": "enabl id max profil rol spend step supervis supervisor usd",
-      "body": "```yaml\nsupervised: object default: {\"maxSpendUsd\":null,\"maxSteps\":20,\"supervisor\":{\"enabled\":true,\"profile\":null,\"roleId\":\"reviewer\"}}\n  supervised.maxSpendUsd: number | null default: null\n  supervised.maxSteps: number | null default: 20\n  supervised.supervisor: object default: {\"enabled\":true,\"profile\":null,\"roleId\":\"reviewer\"}\n    supervised.supervisor.enabled: boolean default: true\n    supervised.supervisor.profile: string | null default: null\n    supervised.supervisor.roleId: string default: \"reviewer\"\n```"
+      "terms": "context enabl engin id max profil rol spend step supervis supervisor usd",
+      "body": "```yaml\nsupervised: object default: {\"maxSpendUsd\":null,\"maxSteps\":20,\"supervisor\":{\"enabled\":true,\"profile\":null,\"roleId\":\"reviewer\",\"contextEngine\":{\"enabled\":false,\"profile\":null}}}\n  supervised.maxSpendUsd: number | null default: null\n  supervised.maxSteps: number | null default: 20\n  supervised.supervisor: object default: {\"enabled\":true,\"profile\":null,\"roleId\":\"reviewer\",\"contextEngine\":{\"enabled\":false,\"profile\":null}}\n    supervised.supervisor.enabled: boolean default: true\n    supervised.supervisor.profile: string | null default: null\n    supervised.supervisor.roleId: string default: \"reviewer\"\n    supervised.supervisor.contextEngine: object default: {\"enabled\":false,\"profile\":null}\n      supervised.supervisor.contextEngine.enabled: boolean default: false\n      supervised.supervisor.contextEngine.profile: string | null default: null\n```"
     },
     {
       "id": "config/supervisorControl",

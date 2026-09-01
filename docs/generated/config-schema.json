@@ -575,7 +575,11 @@
         "supervisor": {
           "enabled": true,
           "profile": null,
-          "roleId": "reviewer"
+          "roleId": "reviewer",
+          "contextEngine": {
+            "enabled": false,
+            "profile": null
+          }
         }
       },
       "itemType": null,
@@ -606,7 +610,11 @@
           "default": {
             "enabled": true,
             "profile": null,
-            "roleId": "reviewer"
+            "roleId": "reviewer",
+            "contextEngine": {
+              "enabled": false,
+              "profile": null
+            }
           },
           "itemType": null,
           "children": [
@@ -636,6 +644,37 @@
               "default": "reviewer",
               "itemType": null,
               "description": "Crew role the supervisor turn runs as (read-only judgment)."
+            },
+            {
+              "key": "contextEngine",
+              "fullKey": "supervised.supervisor.contextEngine",
+              "type": "object",
+              "required": false,
+              "default": {
+                "enabled": false,
+                "profile": null
+              },
+              "itemType": null,
+              "children": [
+                {
+                  "key": "enabled",
+                  "fullKey": "supervised.supervisor.contextEngine.enabled",
+                  "type": "boolean",
+                  "required": false,
+                  "default": false,
+                  "itemType": null,
+                  "description": "Enrich each step with Supervisor-judged context (default OFF; one model call per step)."
+                },
+                {
+                  "key": "profile",
+                  "fullKey": "supervised.supervisor.contextEngine.profile",
+                  "type": "string | null",
+                  "required": false,
+                  "default": null,
+                  "itemType": null,
+                  "description": "Profile the context engine runs on; null = the supervisor profile. Frontier models earn their cost here - the engine's whole job is judgment about relevance."
+                }
+              ]
             }
           ]
         }
