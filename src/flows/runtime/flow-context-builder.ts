@@ -266,6 +266,7 @@ export function buildFlowContextPacket(
       contextPolicy: input.snapshot.contextPolicy,
       contextMode: input.contextMode,
       forceFull: input.forceFullTokens?.has(token) ?? false,
+      isRequired: required.has(token),
     });
     const promptContent = renderPromptContent({
       artifactRoot: input.artifactRoot,
@@ -510,6 +511,8 @@ function decideContextInclusion(input: {
   contextPolicy: ResolvedFlowSnapshot["contextPolicy"];
   contextMode: FlowContextRetentionMode;
   forceFull: boolean;
+  /** The step declared it cannot run without this one. */
+  isRequired: boolean;
 }): {
   disposition: Exclude<FlowContextDisposition, "omitted-unavailable">;
   /** Policy decided this one; the budget pass must not touch it. */
@@ -533,7 +536,20 @@ function decideContextInclusion(input: {
   // model, so reuse gets a delta summary plus the artifact reference. This is
   // not the fixed-size compression the budget model replaced - it is about not
   // repeating yourself to a session that was there.
-  if (input.contextMode === "reused" && input.token !== "task-brief") {
+  // A REQUIRED input is sent whole even into a reused session. Reuse is an
+  // optimisation (do not repeat yourself to a session that was there); a
+  // contract is a requirement. Requirements beat optimisations.
+  //
+  // Found in a live run, not a test: the default flow looped, review re-entered
+  // with a reused session, `execution` came back as a delta summary, and the
+  // contract correctly refused to run a review holding a digest of the code it
+  // was meant to review - which failed the whole run. Both halves were right
+  // individually and deadlocked together.
+  if (
+    input.contextMode === "reused" &&
+    input.token !== "task-brief" &&
+    !input.isRequired
+  ) {
     return {
       disposition: "embedded-summary",
       pinned: true,

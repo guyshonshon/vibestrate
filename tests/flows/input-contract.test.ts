@@ -214,4 +214,34 @@ describe("per-step input contracts", () => {
     expect(result.packet.exemptedRequirements).toEqual([]);
     expect(result.packet.contractViolations.map((v) => v.token)).toEqual(["execution"]);
   });
+
+  it("a required input is sent whole even into a REUSED session", () => {
+    // Found in a live run, not a test. The default flow looped, review
+    // re-entered on a reused session, `execution` came back as a delta summary,
+    // and the contract correctly refused to run a review holding a digest of
+    // the code it was meant to review - which failed the whole run. Reuse is an
+    // optimisation; a contract is a requirement. Requirements win.
+    const s = snapshot();
+    const step = s.steps.find((candidate) => candidate.id === "challenge-response")!;
+    const findings = "the exact finding the reviewer must read\n".repeat(50);
+    const result = buildFlowContextPacket({
+      snapshot: s,
+      step: { ...step, requiredInputs: ["findings"] },
+      contextMode: "reused",
+      outputs: new Map([
+        ["findings", output("findings", findings)],
+        ["diff", output("diff", "a diff nobody requires")],
+      ]),
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+
+    const byToken = new Map(result.packet.inputs.map((i) => [i.token, i]));
+    // The required one is whole despite reuse...
+    expect(byToken.get("findings")?.disposition).toBe("embedded-full");
+    expect(result.packet.contractViolations).toEqual([]);
+    expect(result.priorArtifacts.map((a) => a.content).join("\n")).toContain(findings.trim());
+    // ...and the un-required one still gets the reuse delta, so the
+    // optimisation is intact for everything that did not claim a contract.
+    expect(byToken.get("diff")?.disposition).toBe("embedded-summary");
+  });
 });
