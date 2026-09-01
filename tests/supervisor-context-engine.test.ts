@@ -12,6 +12,7 @@ import {
   type ContextEngine,
   type ContextEngineView,
   injectionEvent,
+  engineOutcomeEvent,
   deterministicContextEngine,
   viewForStep,
 } from "../src/supervisor/context-engine.js";
@@ -285,5 +286,45 @@ describe("supervisor context engine is additive only", () => {
     expect(seated.priorArtifacts.some((a) => a.label.includes("supervisor:"))).toBe(true);
 
     await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it("an engine that considered and declined is recorded, not silent", () => {
+    // Built after a live debugging pass wasted on exactly this ambiguity: the
+    // model tier appeared not to run, and the event log could not distinguish
+    // "declined", "failed" and "never invoked" - all three produced no events.
+    // A Supervisor that considered and declined made a real decision.
+    const declined = engineOutcomeEvent({
+      stepId: "plan",
+      engineId: "model",
+      injected: 0,
+      dropped: 0,
+      note: "Nothing outside this step's declared inputs to judge.",
+      error: null,
+    });
+    expect(declined.data.effect).toBe("declined");
+    expect(declined.data.note).toContain("Nothing outside");
+
+    const failed = engineOutcomeEvent({
+      stepId: "review",
+      engineId: "model",
+      injected: 0,
+      dropped: 0,
+      note: null,
+      error: "provider CLI missing",
+    });
+    expect(failed.data.effect).toBe("failed");
+    expect(failed.data.error).toBe("provider CLI missing");
+
+    const added = engineOutcomeEvent({
+      stepId: "review",
+      engineId: "model",
+      injected: 1,
+      dropped: 0,
+      note: null,
+      error: null,
+    });
+    expect(added.data.effect).toBe("added");
+    // The three outcomes are distinguishable, which is the whole point.
+    expect(new Set([declined.data.effect, failed.data.effect, added.data.effect]).size).toBe(3);
   });
 });

@@ -33,6 +33,7 @@ import { nowIso } from "../../utils/time.js";
 import {
   deterministicContextEngine,
   enrichStep,
+  engineOutcomeEvent,
   injectionEvent,
   viewForStep,
   type ContextEngine,
@@ -193,6 +194,19 @@ export async function buildFlowContextPacket(input: {
         injectionEvent({ stepId: input.step.id, engineId: engine.id, injection }),
       );
     }
+    // Recorded whatever happened, so a silent engine is distinguishable from
+    // an absent one. Without it, "declined", "failed" and "never ran" are the
+    // same observation.
+    input.onInjection?.(
+      engineOutcomeEvent({
+        stepId: input.step.id,
+        engineId: engine.id,
+        injected: result.injections.length,
+        dropped: result.dropped.length,
+        note: result.note,
+        error: result.error,
+      }),
+    );
   }
 
   const built = buildFlowContextPacketValue({

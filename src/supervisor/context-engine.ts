@@ -278,3 +278,43 @@ export function viewForStep(input: {
     task: input.task,
   };
 }
+
+/**
+ * The event an engine's SILENCE becomes.
+ *
+ * Without this, "the engine ran and judged nothing relevant", "the engine ran
+ * and its provider failed", and "the engine never ran at all" are the same
+ * observation: no injection events. That ambiguity cost a live debugging pass -
+ * the model tier appeared not to run, and the log could not say whether it had
+ * declined or been skipped.
+ *
+ * An engine that considered and declined is a real decision by the Supervisor,
+ * and a run's audit trail should carry it.
+ */
+export function engineOutcomeEvent(input: {
+  stepId: string;
+  engineId: string;
+  injected: number;
+  dropped: number;
+  note: string | null;
+  error: string | null;
+}): { type: "supervisor.context_injection"; message: string; data: Record<string, unknown> } {
+  const verdict = input.error
+    ? "failed"
+    : input.injected > 0
+      ? "added"
+      : "declined";
+  return {
+    type: "supervisor.context_injection",
+    message: `Supervisor context engine "${input.engineId}" ${verdict} on ${input.stepId}.`,
+    data: {
+      stepId: input.stepId,
+      engineId: input.engineId,
+      effect: verdict,
+      injected: input.injected,
+      dropped: input.dropped,
+      note: input.note,
+      error: input.error,
+    },
+  };
+}
