@@ -7,6 +7,8 @@ import {
   type ContextEngine,
   type ContextEngineView,
   injectionEvent,
+  deterministicContextEngine,
+  viewForStep,
 } from "../src/supervisor/context-engine.js";
 import {
   buildFlowContextPacket,
@@ -68,7 +70,7 @@ const view: ContextEngineView = {
   seat: "reviewer",
   declaredInputs: ["findings"],
   requiredInputs: ["findings"],
-  priorOutcomes: [],
+  candidates: [],
   task: "context engine",
 };
 
@@ -194,4 +196,53 @@ describe("supervisor context engine is additive only", () => {
     // The event vocabulary has one verb. There is no "removed" to emit.
     expect(event.data.effect).toBe("added");
   });
+
+  it("viewForStep hands the engine the COMPLEMENT, never what the step holds", () => {
+    // The structural half of the guarantee: the engine's whole input domain is
+    // what the step is missing, so there is no object on which it could act to
+    // drop something the step has.
+    const v = viewForStep({
+      step: { id: "review", label: "Review", seat: "reviewer", inputs: ["findings"], requiredInputs: ["findings"] },
+      outputs: new Map([
+        ["findings", { token: "findings", label: "findings", content: "SECRET-DECLARED" }],
+        ["architecture", { token: "architecture", label: "architecture", content: "we chose queues" }],
+      ]),
+      task: "t",
+    });
+    expect(v.candidates.map((c) => c.token)).toEqual(["architecture"]);
+    // The declared input's content is nowhere in the view.
+    expect(JSON.stringify(v)).not.toContain("SECRET-DECLARED");
+  });
+
+  it("the deterministic tier states which outputs the step is NOT getting", async () => {
+    const v = viewForStep({
+      step: { id: "review", label: "Review", seat: "reviewer", inputs: ["findings"] },
+      outputs: new Map([
+        ["findings", { token: "findings", label: "Findings", content: "declared" }],
+        ["architecture", { token: "architecture", label: "Architecture", content: "we rejected polling" }],
+      ]),
+      task: "t",
+    });
+    const decision = await deterministicContextEngine.proposeInjections(v);
+    expect(decision.injections).toHaveLength(1);
+    const body = decision.injections[0]!.content;
+    // The undeclared one is named; the declared one is not re-listed.
+    expect(body).toContain("architecture");
+    expect(body).not.toContain("- findings");
+    // A manifest, not a copy: the content is pointed at, never inlined.
+    expect(body).not.toContain("we rejected polling");
+  });
+
+  it("says so plainly when the step already declares everything", async () => {
+    const v = viewForStep({
+      step: { id: "review", label: "Review", seat: "reviewer", inputs: ["findings"] },
+      outputs: new Map([["findings", { token: "findings", label: "Findings", content: "x" }]]),
+      task: "t",
+    });
+    const decision = await deterministicContextEngine.proposeInjections(v);
+    expect(decision.injections).toEqual([]);
+    // Silence is legible rather than indistinguishable from "did not run".
+    expect(decision.note).toContain("already declared");
+  });
+
 });

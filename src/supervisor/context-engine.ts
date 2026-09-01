@@ -10,10 +10,16 @@
 // material; it may never withhold, shrink, reorder away, or replace anything a
 // step's contract declares.
 //
-// That is enforced by SHAPE, not by this comment. `proposeInjections` returns
-// `FlowContextInjection[]` and nothing else. It is handed a read-only view of
-// what the step is already getting, and it has no channel through which to
-// return a modified input, a removal, or a budget instruction. The context
+// That is enforced by SHAPE, not by this comment. Two halves:
+//
+//   - `proposeInjections` returns `FlowContextInjection[]` and nothing else.
+//     There is no `remove`, no `replace`, no `summarize`, no budget field.
+//   - its input domain is the COMPLEMENT of the step's inputs. It sees what the
+//     step is missing, never what the step already holds, so the objects it
+//     would have to touch in order to drop one are not reachable from it.
+//
+// It has no channel through which to return a modified input, a removal, or a
+// budget instruction. The context
 // builder appends injections after the declared inputs and after the contract
 // check, so an injection cannot satisfy a contract or displace what does. A
 // buggy engine, or one whose model returns something adversarial, can at worst
@@ -39,8 +45,18 @@ export type ContextEngineView = {
   readonly declaredInputs: readonly string[];
   /** Tokens the step cannot run without, for judging what would be redundant. */
   readonly requiredInputs: readonly string[];
-  /** Prior step outcomes, oldest first, as the run recorded them. */
-  readonly priorOutcomes: readonly { stepId: string; summary: string }[];
+  /**
+   * What the step is NOT getting: outputs this run has produced that this step
+   * did not declare. This is the engine's ENTIRE input domain, and that is the
+   * point.
+   *
+   * The engine can only ever choose from the complement of the step's inputs,
+   * so "add something the step is missing" is the only sentence it can form.
+   * It is never handed what the step already has, which is why there is no
+   * shape in which it could shrink or drop one - the objects simply are not
+   * reachable from here.
+   */
+  readonly candidates: readonly { token: string; label: string; content: string }[];
   readonly task: string;
 };
 
@@ -158,5 +174,107 @@ export function injectionEvent(input: {
       // Named so a reader knows this event can only ever describe an addition.
       effect: "added",
     },
+  };
+}
+
+// ── The deterministic tier ───────────────────────────────────────────────────
+//
+// The same shape flow-sizing.ts has against triage-turn.ts: run the free,
+// deterministic answer first, and only pay a model for what it cannot settle.
+//
+// It answers the concrete version of "context is lost between steps": a step
+// declares four inputs, the run has produced seven, and the three it did not
+// declare may bear on it. A reviewer that never received the architecture
+// step's output does not know the approach was already chosen, and reports it
+// as a finding.
+//
+// WHAT IT EMITS IS A MANIFEST, NOT A DIGEST, and that is a correction.
+//
+// The first version scanned undeclared outputs for decision-shaped lines
+// ("decided", "chose", "rejected", "constraint") and injected the matches.
+// Calibrated against 107 real artifacts from recorded benchmark runs rather
+// than against invented fixtures, it did not survive: the loose marker set hit
+// 169 lines that were overwhelmingly headings ("## Final Decision"), table
+// columns ("| Stage | ... | Decision |") and run metadata ("Flow chosen
+// explicitly with --flow"), and tightening it to verb-led phrases dropped to 18
+// hits that were almost entirely role-prompt boilerplate rather than run
+// output. A tier that injects mostly noise costs tokens and dilutes the prompt,
+// which is worse than adding nothing.
+//
+// So this states a FACT instead of guessing: which outputs exist that this step
+// does not receive, and where to read them. No heuristic, no false positives,
+// one line each. The seat decides whether to open one. A model tier can later
+// decide which pointer is worth expanding into content - that is a judgment
+// call, which is exactly the work a model should be paid for and a keyword list
+// should not attempt.
+
+/** How much of a pointer line is kept, so a long label cannot bloat a prompt. */
+const MANIFEST_LABEL_CHARS = 120;
+
+/**
+ * The free tier. No model call, no cost, always available.
+ *
+ * One injection listing every output this run produced that this step does not
+ * receive, with where to read each. A fact, not a guess - see the note above
+ * for the heuristic this replaced and the calibration that killed it.
+ */
+export const deterministicContextEngine: ContextEngine = {
+  id: "deterministic",
+  proposeInjections: async (view) => {
+    if (view.candidates.length === 0) {
+      return { injections: [], note: "Every output this run has produced is already declared by this step." };
+    }
+    const lines = view.candidates.map((candidate) => {
+      const label = candidate.label.slice(0, MANIFEST_LABEL_CHARS);
+      const size = Buffer.byteLength(candidate.content, "utf8");
+      return `- ${candidate.token} (${label}, ${size.toLocaleString()} bytes)`;
+    });
+    return {
+      injections: [
+        {
+          source: "undeclared-outputs",
+          label: "Produced by this run, not sent to this step",
+          content: [
+            "These artifacts exist in this run and are NOT among this step's inputs.",
+            "They are listed, not included: open one only if it bears on your work.",
+            "",
+            ...lines,
+          ].join("\n"),
+          reason: `${view.candidates.length} output(s) this run produced are outside this step's declared inputs.`,
+        },
+      ],
+      note: null,
+    };
+  },
+};
+
+/**
+ * Build the engine's view for one step.
+ *
+ * The candidate set is computed HERE, as the complement of the step's declared
+ * inputs, so the engine never receives the outputs the step already holds. That
+ * is the structural half of the additive-only guarantee: a caller cannot
+ * accidentally widen it by passing the whole map, because this function is what
+ * decides what an engine can see.
+ */
+export function viewForStep(input: {
+  step: { id: string; label: string; seat: string | null; inputs: readonly string[]; requiredInputs?: readonly string[] };
+  outputs: ReadonlyMap<string, { token: string; label: string; content: string }>;
+  task: string;
+}): ContextEngineView {
+  const declared = new Set(input.step.inputs);
+  const candidates: { token: string; label: string; content: string }[] = [];
+  for (const [token, output] of input.outputs) {
+    if (declared.has(token)) continue;
+    candidates.push({ token, label: output.label, content: output.content });
+  }
+  return {
+    stepId: input.step.id,
+    stepLabel: input.step.label,
+    seat: input.step.seat,
+    declaredInputs: [...input.step.inputs],
+    requiredInputs: [...(input.step.requiredInputs ?? [])],
+    candidates,
+    task: input.task,
   };
 }

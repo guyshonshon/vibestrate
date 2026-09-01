@@ -1620,6 +1620,14 @@ export class Orchestrator {
         // Condition-skips are decided per-iteration and are not in scope here,
         // so those tokens stay fully under contract - the fail-closed direction.
         unproducibleTokens: this.unproducibleTokens(snapshot.steps, new Set()),
+        task: this.task,
+        onInjection: (event) => {
+          void input.eventLog.append({
+            type: event.type,
+            message: event.message,
+            data: event.data,
+          });
+        },
         // Preference-gate review must see the exact diff, not a summary, or it is
         // blind to the line-level violation. Only forced when this is a lensed
         // reviewer turn AND there are preferences to check (else behavior unchanged).
@@ -3254,6 +3262,14 @@ export class Orchestrator {
               input.snapshot.steps,
               new Set(),
             ),
+            task: this.task,
+            onInjection: (event) => {
+              void input.eventLog.append({
+            type: event.type,
+            message: event.message,
+            data: event.data,
+          });
+            },
             // Preference-gate review needs the exact diff (not a summary) on the
             // linear walk too. Only forced on a reviewer turn carrying preferences.
             forceFullTokens:

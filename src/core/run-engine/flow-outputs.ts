@@ -31,6 +31,13 @@ import type { ProviderFailureClass } from "../provider-resilience.js";
 import { getDiffSnapshot } from "../diff-service.js";
 import { nowIso } from "../../utils/time.js";
 import {
+  deterministicContextEngine,
+  enrichStep,
+  injectionEvent,
+  viewForStep,
+  type ContextEngine,
+} from "../../supervisor/context-engine.js";
+import {
   buildFlowContextPacket as buildFlowContextPacketValue,
   type FlowContextOutput,
 } from "../../flows/runtime/flow-context-builder.js";
@@ -146,17 +153,51 @@ export async function buildFlowContextPacket(input: {
   forceFullTokens?: ReadonlySet<string>;
   /** Tokens no step in this run will produce; see the builder's field doc. */
   unproducibleTokens?: ReadonlySet<string>;
+  /** The task, for the context engine's view. */
+  task?: string;
+  /**
+   * Extra engines beyond the free deterministic one. A model-backed engine
+   * goes here; it is subject to the identical additive-only shape.
+   */
+  engines?: readonly ContextEngine[];
+  /** Called once per injection so the run can record it. Never throws. */
+  onInjection?: (event: ReturnType<typeof injectionEvent>) => void;
 }): Promise<{
   priorArtifacts: PriorArtifact[];
   contextPacketPath: string;
   budget: ReturnType<typeof buildFlowContextPacketValue>["packet"]["budget"];
 }> {
+  // Enrichment runs HERE, in the same funnel as the contract check, so there is
+  // no path that injects without also being checked. The deterministic engine
+  // is always in the list: it costs nothing, and the config gate exists to
+  // control model SPEND, not to switch off free help.
+  const engines: readonly ContextEngine[] = [
+    deterministicContextEngine,
+    ...(input.engines ?? []),
+  ];
+  const view = viewForStep({
+    step: input.step,
+    outputs: input.outputs,
+    task: input.task ?? "",
+  });
+  const injections: Awaited<ReturnType<typeof enrichStep>>["injections"] = [];
+  for (const engine of engines) {
+    const result = await enrichStep(engine, view);
+    for (const injection of result.injections) {
+      injections.push(injection);
+      input.onInjection?.(
+        injectionEvent({ stepId: input.step.id, engineId: engine.id, injection }),
+      );
+    }
+  }
+
   const built = buildFlowContextPacketValue({
     snapshot: input.snapshot,
     step: input.step,
     outputs: input.outputs,
     contextMode: input.contextMode,
     forceFullTokens: input.forceFullTokens,
+    injections,
     // The agent runs in the WORKTREE, so a run-relative artifact reference does
     // not resolve. Handing it the absolute root makes "exact content is
     // available in the artifact above" true instead of a dead path.
