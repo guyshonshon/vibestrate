@@ -93,8 +93,13 @@ export class MetricsStore {
   private async appendRoleMetricsNow(agent: RoleMetrics): Promise<RuntimeMetrics> {
     const current = (await this.read()) ?? null;
     if (!current) {
+      // The initial write is awaited at run start, so a missing file here means
+      // the run directory was removed UNDERNEATH a live run - not that a write
+      // was skipped. Say so: the old "before initial write" wording sent a
+      // debugging pass after call ordering when the cause was another process
+      // resetting the same project directory mid-flight.
       throw new Error(
-        `MetricsStore: cannot append agent metrics before initial write. runId=${this.runId}`,
+        `MetricsStore: ${this.filePath} is missing for run ${this.runId}. It was written at run start; if it is gone, the run directory was deleted while the run was live (another process resetting or cleaning this project?).`,
       );
     }
     // Replace if already present (e.g. fixer loop reruns), otherwise append.
