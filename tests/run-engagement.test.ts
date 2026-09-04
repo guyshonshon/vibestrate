@@ -287,4 +287,12 @@ describe("deriveEngagement", () => {
     const [plain] = deriveEngagement([ev("approval.expired", { approvalId: "a2", stageId: "architecting" })]);
     expect(plain!.detail).toBeNull();
   });
+
+  it("pluralises the policy count the way English does", () => {
+    // Seen on a real run page as "4 project policyies".
+    const [four] = deriveEngagement([ev("supervisor.policy_advise", { policies: ["a", "b", "c", "d"] })]);
+    expect(four!.title).toBe("review checks 4 project policies");
+    const [one] = deriveEngagement([ev("supervisor.policy_advise", { policies: ["a"] })]);
+    expect(one!.title).toBe("review checks 1 project policy");
+  });
 });

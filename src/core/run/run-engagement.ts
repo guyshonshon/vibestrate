@@ -129,7 +129,7 @@ function entryFor(e: VibestrateEvent): Partial | null {
         cls: "judgment",
         anchor: "root",
         stepId: null,
-        title: `review checks ${n} project policy${n === 1 ? "" : "ies"}`,
+        title: `review checks ${n} project ${n === 1 ? "policy" : "policies"}`,
         detail: policies.length ? policies.join(" · ") : null,
         tone: "info",
       };
