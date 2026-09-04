@@ -290,12 +290,17 @@ export function viewForStep(input: {
  *
  * An engine that considered and declined is a real decision by the Supervisor,
  * and a run's audit trail should carry it.
+ *
+ * It also carries how many undeclared outputs the engine had to judge. A
+ * decline with nothing to judge is not a decision, and a reader that wants to
+ * tell the two apart branches on that number, never on the note's wording.
  */
 export function engineOutcomeEvent(input: {
   stepId: string;
   engineId: string;
   injected: number;
   dropped: number;
+  candidates: number;
   note: string | null;
   error: string | null;
 }): { type: "supervisor.context_injection"; message: string; data: Record<string, unknown> } {
@@ -313,6 +318,7 @@ export function engineOutcomeEvent(input: {
       effect: verdict,
       injected: input.injected,
       dropped: input.dropped,
+      candidates: input.candidates,
       note: input.note,
       error: input.error,
     },

@@ -207,6 +207,8 @@ describe("deriveEngagement", () => {
         reason: "2 output(s) this run produced are outside this step's declared inputs.",
         bytes: 140,
       }),
+      // Judged and declined (an event from before the candidate count existed
+      // carries no field and is shown): a row.
       ev("supervisor.context_injection", {
         stepId: "plan",
         engineId: "model",
@@ -214,6 +216,17 @@ describe("deriveEngagement", () => {
         injected: 0,
         dropped: 0,
         note: "nothing here would change what this step does",
+        error: null,
+      }),
+      // Nothing to judge: the tier never decided anything, so no row.
+      ev("supervisor.context_injection", {
+        stepId: "implement",
+        engineId: "model",
+        effect: "declined",
+        injected: 0,
+        dropped: 0,
+        candidates: 0,
+        note: "Nothing outside this step's declared inputs to judge.",
         error: null,
       }),
       // The manifest declining means the step already had everything: no row.

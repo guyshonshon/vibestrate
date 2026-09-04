@@ -298,10 +298,14 @@ describe("supervisor context engine is additive only", () => {
       engineId: "model",
       injected: 0,
       dropped: 0,
+      candidates: 0,
       note: "Nothing outside this step's declared inputs to judge.",
       error: null,
     });
     expect(declined.data.effect).toBe("declined");
+    // How much there was to judge travels as a number, so a reader never has
+    // to parse the note to tell "nothing to judge" from "judged and declined".
+    expect(declined.data.candidates).toBe(0);
     expect(declined.data.note).toContain("Nothing outside");
 
     const failed = engineOutcomeEvent({
@@ -309,6 +313,7 @@ describe("supervisor context engine is additive only", () => {
       engineId: "model",
       injected: 0,
       dropped: 0,
+      candidates: 2,
       note: null,
       error: "provider CLI missing",
     });
@@ -320,6 +325,7 @@ describe("supervisor context engine is additive only", () => {
       engineId: "model",
       injected: 1,
       dropped: 0,
+      candidates: 3,
       note: null,
       error: null,
     });

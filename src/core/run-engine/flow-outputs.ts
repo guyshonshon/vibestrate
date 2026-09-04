@@ -203,6 +203,7 @@ export async function buildFlowContextPacket(input: {
         engineId: engine.id,
         injected: result.injections.length,
         dropped: result.dropped.length,
+        candidates: view.candidates.length,
         note: result.note,
         error: result.error,
       }),

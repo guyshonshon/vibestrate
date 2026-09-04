@@ -184,7 +184,12 @@ function entryFor(e: VibestrateEvent): Partial | null {
           tone: "warn",
         };
       }
-      if (effect === "declined" && engine === "model") {
+      // A decline with nothing to judge is not a decision: the tier never ran
+      // its judgment, so a row per such step would be the low-signal noise this
+      // lane excludes. Events from before the count existed carry no field and
+      // are shown, erring towards a visible row over a hidden decision.
+      const candidates = num(d, "candidates");
+      if (effect === "declined" && engine === "model" && candidates !== 0) {
         return {
           cls: "judgment",
           anchor: onStep(),
