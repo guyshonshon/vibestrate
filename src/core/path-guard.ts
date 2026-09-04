@@ -89,6 +89,59 @@ async function pathExistsOnDisk(abs: string): Promise<boolean> {
  * Throws PathGuardError(400) on any violation. Does NOT enforce a 404 - the
  * caller decides whether the absence of a file is "not found" or normal.
  */
+/**
+ * The real location a path would occupy, including when it does not exist yet.
+ *
+ * `fs.realpath` fails outright on a missing target, which is exactly the case a
+ * containment guard must still judge: a link pointing at a file that has not
+ * been created is only honest if the place it WOULD be created is inside the
+ * root. So resolve the deepest ancestor that does exist and re-attach the
+ * missing tail, rather than trusting the textual path.
+ */
+async function realLocationOf(target: string): Promise<string | null> {
+  const missingTail: string[] = [];
+  let probe = target;
+  for (let climb = 0; climb <= 64; climb++) {
+    const real = await fs.realpath(probe).catch(() => null);
+    if (real) return missingTail.length > 0 ? path.join(real, ...missingTail) : real;
+    const parent = path.dirname(probe);
+    if (parent === probe) return null;
+    missingTail.unshift(path.basename(probe));
+    probe = parent;
+  }
+  return null;
+}
+
+/**
+ * Follow a symlink chain to where it really lands.
+ *
+ * The leaf check used to judge a dangling link by ONE textual hop: read the
+ * target, resolve it against the link's own directory, and compare. That is
+ * wrong in three ways that were reproduced against this function - a second hop
+ * (a -> b -> outside), a symlinked DIRECTORY in the target (link -> dirlink/x
+ * where dirlink leaves the root), and a relative target through such a
+ * directory - each of which was declared contained while really pointing
+ * outside. The ancestor walk below already had a realpath backstop; the leaf
+ * branch did not, and that asymmetry was the bug.
+ *
+ * Each hop resolves against the link's REAL directory, so a symlinked parent is
+ * followed rather than taken at face value. The hop bound is what the OS would
+ * enforce with ELOOP: a cycle returns null, which the caller refuses.
+ */
+async function resolveThroughLinks(start: string): Promise<string | null> {
+  let current = start;
+  for (let hop = 0; hop <= 32; hop++) {
+    const entry = await fs.lstat(current).catch(() => null);
+    if (!entry?.isSymbolicLink()) return realLocationOf(current);
+    const target = await fs.readlink(current).catch(() => null);
+    if (target === null) return null;
+    const realDir = await realLocationOf(path.dirname(current));
+    if (realDir === null) return null;
+    current = path.resolve(realDir, target);
+  }
+  return null;
+}
+
 export async function resolveSafePath(
   userPath: string,
   roots: readonly AllowedRoot[],
@@ -210,11 +263,7 @@ export async function resolveSafePath(
       // placeholder - is an honest 404, and calling it an escape tells the owner
       // their file left the project when it did not. Resolve the target the way
       // the OS would and judge it on where it actually points.
-      const target = await fs.readlink(chosen.abs).catch(() => null);
-      const resolved =
-        target === null
-          ? null
-          : path.resolve(path.dirname(chosen.abs), target);
+      const resolved = await resolveThroughLinks(chosen.abs);
       if (resolved === null || !isPathInside(realRoot, resolved)) {
         throw new PathGuardError(
           400,

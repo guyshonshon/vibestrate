@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **The path guard follows a symlink chain to where it really lands.** It judged
+  a dangling link by one textual hop: read the target, resolve it against the
+  link's own directory, compare. Anything needing a second resolution slipped
+  through, and three shapes did - a chain that only leaves on its second hop, a
+  target whose parent is a symlinked directory pointing out of the root, and the
+  relative spelling of that same escape. All three were declared contained while
+  really pointing outside, reproduced against the guard before the fix. The
+  ancestor walk already resolved real paths; the leaf branch did not, and that
+  asymmetry was the bug. Each hop now resolves against its parent's real path,
+  bounded the way the OS bounds one. A link to a file that does not exist yet
+  inside the root still resolves, because that is an honest 404 rather than an
+  escape. Worth knowing if you run Linux: on macOS these were refused anyway, by
+  accident, because the temp root's `/var` spelling never matched its
+  `/private/var` real path - the containment check was not what stopped them.
+
 - **A page you visit can no longer make your dashboard do work.** The server
   refused cross-site requests a browser marked `Sec-Fetch-Site: cross-site`, but
   only on state-changing methods. A browser sends no `Origin` header at all for
