@@ -1,0 +1,67 @@
+name: Audit
+
+# The prod-dependency audit, separated from ci.yml on 2026-09-04. As a step in
+# the CI matrix it ran twice per push for one lockfile, and an npm outage turned
+# the code-health gate red with every Test step green: the audits endpoint
+# (registry.npmjs.org/-/npm/v1/security/audits) timed out for over an hour while
+# the registry itself answered and status.npmjs.org stayed green. Here it fails
+# on its own, so a red CI means broken code and a red Audit means a finding or
+# an unreachable endpoint, and the log says which.
+#
+# Runs on the same pushes and PRs as CI, and daily: an advisory published
+# against an unchanged lockfile is invisible to a per-push audit until the next
+# push, and Dependabot's alert is asynchronous. ci.yml and this file together
+# stay a superset of scripts/release.sh, which audits again before publishing.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # 03:40 UTC: off the hour like flake.yml, and twenty minutes after it so
+    # the two do not queue together.
+    - cron: "40 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prod-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v6
+
+      # One Node version: the audit reads pnpm-lock.yaml and asks the registry;
+      # nothing about it depends on the runtime, and running it once per push
+      # halves the exposure to an endpoint outage.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Runtime dependencies only: a dev-only advisory should not block a
+      # feature PR, but anything that ships to a user's machine should.
+      # Fix a transitive pin with pnpm.overrides - Dependabot cannot.
+      - name: Audit (prod)
+        # pnpm's own three retries span about three minutes, which covers a
+        # blip, not an outage. Only a transport error is retried; a real
+        # finding fails on the first attempt, so the gate's threshold is
+        # unchanged.
+        run: |
+          for attempt in 1 2 3 4; do
+            if pnpm audit --prod > audit.log 2>&1; then cat audit.log; exit 0; fi
+            cat audit.log
+            # A finding fails on the first attempt. Only a transport error is retried.
+            if ! grep -qE "ERR_SOCKET_TIMEOUT|FetchError|ECONNRESET|ETIMEDOUT|ENOTFOUND" audit.log; then exit 1; fi
+            if [ "$attempt" -lt 4 ]; then
+              echo "audit endpoint unreachable, retrying in ${AUDIT_RETRY_DELAY:-180}s ($attempt/4)"
+              sleep "${AUDIT_RETRY_DELAY:-180}"
+            fi
+          done
+          echo "audit endpoint unreachable on every attempt"
+          exit 1

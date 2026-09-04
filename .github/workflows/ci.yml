@@ -1,13 +1,16 @@
 name: CI
 
-# Typecheck, test, build, and audit on every push to main and every PR. This is
-# the fast required gate, Ubuntu only. Native Windows is verified separately and
-# on demand (.github/workflows/ci-windows.yml) so it never slows down a push and
-# nothing here depends on it.
+# Typecheck, test, build and verify the packed artifact on every push to main
+# and every PR. This is the fast required gate, Ubuntu only. Native Windows is
+# verified separately and on demand (.github/workflows/ci-windows.yml) so it
+# never slows down a push and nothing here depends on it. The prod-dependency
+# audit runs beside this in audit.yml, on the same triggers plus a daily
+# schedule, so an npm outage cannot turn this gate red.
 #
-# This gate must stay a superset of scripts/release.sh. When the two diverge, a
-# blocked release looks green here until someone tries to publish - which is
-# exactly how three high-severity advisories sat unnoticed behind a green badge.
+# This gate and audit.yml together must stay a superset of scripts/release.sh.
+# When they diverge, a blocked release looks green here until someone tries to
+# publish - which is exactly how three high-severity advisories sat unnoticed
+# behind a green badge.
 
 on:
   push:
@@ -65,30 +68,6 @@ jobs:
 
       - name: Test
         run: pnpm test
-
-      # Runtime dependencies only: a dev-only advisory should not block a
-      # feature PR, but anything that ships to a user's machine should.
-      # Fix a transitive pin with pnpm.overrides - Dependabot cannot.
-      - name: Audit (prod)
-        # The npm audits endpoint drops for tens of minutes while the registry
-        # itself answers and status.npmjs.org stays green (45 minutes of socket
-        # timeouts from two networks on 2026-09-04). pnpm's own three retries
-        # span about three minutes, which covers a blip, not an outage. Only a
-        # transport error is retried; a real finding fails on the first attempt,
-        # so the gate's threshold is unchanged.
-        run: |
-          for attempt in 1 2 3 4; do
-            if pnpm audit --prod > audit.log 2>&1; then cat audit.log; exit 0; fi
-            cat audit.log
-            # A finding fails on the first attempt. Only a transport error is retried.
-            if ! grep -qE "ERR_SOCKET_TIMEOUT|FetchError|ECONNRESET|ETIMEDOUT|ENOTFOUND" audit.log; then exit 1; fi
-            if [ "$attempt" -lt 4 ]; then
-              echo "audit endpoint unreachable, retrying in ${AUDIT_RETRY_DELAY:-180}s ($attempt/4)"
-              sleep "${AUDIT_RETRY_DELAY:-180}"
-            fi
-          done
-          echo "audit endpoint unreachable on every attempt"
-          exit 1
 
       # The last step release.sh runs that CI did not, which is exactly the
       # divergence the header above warns about. Packs the tarball, installs it
