@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -18,6 +19,15 @@ import { fileURLToPath } from "node:url";
  * run reports drift instead of silently fixing it and leaving a dirty tree.
  */
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+/**
+ * The generator is run as `node <tsx's own cli.mjs> <script>` rather than via
+ * `node_modules/.bin/tsx`. That extensionless shim is a POSIX shell script;
+ * on Windows pnpm writes `tsx.cmd` beside it and `execFileSync` does no
+ * PATHEXT lookup, so the shim path is ENOENT there and the test failed on
+ * every Windows run. The package's JS entry is the same file on every OS.
+ */
+const tsxCli = createRequire(import.meta.url).resolve("tsx/cli");
 const committedDir = join(repoRoot, "docs", "generated");
 
 /**
@@ -38,8 +48,8 @@ describe("docs/generated has not drifted from its source", () => {
     const out = mkdtempSync(join(tmpdir(), "vibestrate-docsgen-"));
     try {
       execFileSync(
-        join(repoRoot, "node_modules", ".bin", "tsx"),
-        [join("scripts", "generate-docs-metadata.ts")],
+        process.execPath,
+        [tsxCli, join("scripts", "generate-docs-metadata.ts")],
         {
           cwd: repoRoot,
           env: { ...process.env, VIBESTRATE_DOCS_OUT: out },
