@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import path from "node:path";
+import os from "node:os";
+import fs from "node:fs/promises";
+import { execa } from "execa";
 import { modelContextEngine } from "../src/supervisor/context-engine-model.js";
 import { viewForStep, enrichStep } from "../src/supervisor/context-engine.js";
+import { applySetup } from "../src/setup/setup-service.js";
+import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 /**
  * The model tier judges RELEVANCE, which is the thing a keyword list could not
@@ -34,11 +40,37 @@ function runnerAnswering(json: unknown) {
   });
 }
 
+const noProvider: ProviderDetectionRunner = async () => ({ exitCode: 127, stdout: "", stderr: "" });
+
+/** A scaffolded project of the test's own. The engine reaches its runner
+ *  through runAssist, which loads and validates the project config and
+ *  resolves a profile before the runner is ever called, so pointing it at
+ *  `process.cwd()` passed only on a checkout that carries a gitignored
+ *  `.vibestrate/project.yml` and failed everywhere else, CI included.
+ *  Same fixture as assist-runner.test.ts. */
+async function makeProject(): Promise<string> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-context-engine-"));
+  await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
+  await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
+  await execa("git", ["config", "user.name", "x"], { cwd: dir });
+  await fs.writeFile(path.join(dir, "package.json"), '{"name":"demo"}');
+  await execa("git", ["add", "."], { cwd: dir });
+  await execa("git", ["commit", "-q", "-m", "init"], { cwd: dir });
+  await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
+  return dir;
+}
+
 describe("context engine, model tier", () => {
+  let projectRoot: string;
+  beforeAll(async () => {
+    // Nothing below writes config, so one project serves every test.
+    projectRoot = await makeProject();
+  });
+
   it("injects the artifact's OWN bytes, never the model's prose", async () => {
     const real = "ARCHITECTURE: we rejected polling for the latency budget.";
     const engine = modelContextEngine({
-      projectRoot: process.cwd(),
+      projectRoot,
       runner: runnerAnswering({
         selections: [
           // The model's `reason` is its own words and is carried as the reason.
@@ -63,7 +95,7 @@ describe("context engine, model tier", () => {
     // The reason the answer is ids rather than prose: an invented id looks up
     // to nothing, where invented prose would have gone straight into a prompt.
     const engine = modelContextEngine({
-      projectRoot: process.cwd(),
+      projectRoot,
       runner: runnerAnswering({
         selections: [
           { token: "a-file-that-was-never-produced", reason: "sounds important" },
@@ -85,7 +117,7 @@ describe("context engine, model tier", () => {
     // prompt at all. Selecting it resolves to nothing, exactly like any other
     // token that is not on the list.
     const engine = modelContextEngine({
-      projectRoot: process.cwd(),
+      projectRoot,
       runner: runnerAnswering({
         selections: [{ token: "findings", reason: "I would like to restate this" }],
       }),
@@ -100,7 +132,7 @@ describe("context engine, model tier", () => {
 
   it("selecting nothing is a legible answer, not a silent one", async () => {
     const engine = modelContextEngine({
-      projectRoot: process.cwd(),
+      projectRoot,
       runner: runnerAnswering({ selections: [] }),
     });
     const result = await engine.proposeInjections(
@@ -112,7 +144,7 @@ describe("context engine, model tier", () => {
 
   it("a provider failure is silence, and the step is unaffected", async () => {
     const engine = modelContextEngine({
-      projectRoot: process.cwd(),
+      projectRoot,
       runner: async () => {
         throw new Error("provider CLI missing");
       },
@@ -130,7 +162,7 @@ describe("context engine, model tier", () => {
 
   it("caps how many it may select, whatever the model asks for", async () => {
     const engine = modelContextEngine({
-      projectRoot: process.cwd(),
+      projectRoot,
       runner: runnerAnswering({
         selections: [
           { token: "a", reason: "r" },
