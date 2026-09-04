@@ -262,4 +262,16 @@ describe("deriveEngagement", () => {
     expect(out[3]!.tone).toBe("warn");
     expect(out[3]!.detail).toContain("exited 1");
   });
+
+  it("says why an approval expired when the run was unattended", () => {
+    const [unattended] = deriveEngagement([
+      ev("approval.expired", { approvalId: "a1", stageId: "architecting", unattended: true, waitedMs: 1 }),
+    ]);
+    expect(unattended!.title).toBe("approval expired");
+    expect(unattended!.detail).toContain("unattended");
+    expect(unattended!.stepId).toBe("architecting");
+
+    const [plain] = deriveEngagement([ev("approval.expired", { approvalId: "a2", stageId: "architecting" })]);
+    expect(plain!.detail).toBeNull();
+  });
 });

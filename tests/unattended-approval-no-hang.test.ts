@@ -110,5 +110,20 @@ const orch = new Orchestrator({
     expect(approvals.length).toBeGreaterThanOrEqual(1);
     expect(approvals[0]!.status).toBe("expired");
     expect(approvals[0]!.resolvedBy).toBe("system-timeout");
+
+    // The record says WHY it expired, as a typed field and in words, so an
+    // unattended block is never read as a gate a human ignored.
+    const events = (
+      await fs.readFile(
+        path.join(dir, ".vibestrate", "runs", result.runId, "events.ndjson"),
+        "utf8",
+      )
+    )
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as { type: string; message: string; data?: Record<string, unknown> });
+    const expired = events.find((e) => e.type === "approval.expired");
+    expect(expired?.data?.["unattended"]).toBe(true);
+    expect(expired?.message).toContain("unattended");
   }, 60_000);
 });

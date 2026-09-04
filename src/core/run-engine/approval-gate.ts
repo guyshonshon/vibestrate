@@ -19,6 +19,11 @@ import type { RunStatus } from "../workflow/workflow-types.js";
 import type { ProjectConfig } from "../../project/config-schema.js";
 import type { RoleRunResult } from "./types.js";
 
+/** How long an unattended gate waits, in words a person reads in a log line. */
+function describeWait(ms: number): string {
+  return ms <= 1 ? "at once" : `after ${Math.round(ms / 1000)}s`;
+}
+
 /** The orchestrator state the approval gate reads. Assembled fresh at each
  *  call site (Orchestrator.approvalGateDeps()) so live fields are current;
  *  the gate itself never mutates orchestrator state. */
@@ -125,16 +130,22 @@ export async function awaitApprovalRequest(
   // so it `expires` -> the run goes `blocked` honestly. Attended runs keep the
   // indefinite wait (a human is there). This NEVER approves; it only stops the
   // hang. `forbidAutoMerge`/`forbidAutoPush` and every gate are untouched.
+  //
+  // Say so where the request is raised. Without this line an unattended run
+  // prints the same "pausing for approval" as an attended one and blocks a
+  // poll later, and the log reads as a gate nobody answered rather than a gate
+  // nobody COULD answer. A benchmark run was misread that way for a day.
+  const unattendedWaitMs = deps.unattended
+    ? Math.max(1, deps.policies.unattendedApprovalTimeoutMs)
+    : null;
+  if (unattendedWaitMs !== null) {
+    deps.onProgress(
+      `Unattended run: nobody can answer this request, so it expires ${describeWait(unattendedWaitMs)} and the run blocks. It stays in the Approvals inbox: answer it there and resume, or re-run attended.`,
+    );
+  }
   const resolved = await input.approvalService.waitForResolution(req.id, {
     pollMs: 1500,
-    ...(deps.unattended
-      ? {
-          timeoutMs: Math.max(
-            1,
-            deps.policies.unattendedApprovalTimeoutMs,
-          ),
-        }
-      : {}),
+    ...(unattendedWaitMs !== null ? { timeoutMs: unattendedWaitMs } : {}),
   });
 
   if (resolved.status === "approved") {
@@ -199,10 +210,16 @@ export async function awaitApprovalRequest(
     message:
       resolved.status === "rejected"
         ? `Approval ${req.id} rejected by ${resolved.resolvedBy ?? "local-user"}.`
-        : `Approval ${req.id} expired without a decision.`,
+        : unattendedWaitMs !== null
+          ? `Approval ${req.id} expired: the run is unattended, so nobody could answer${unattendedWaitMs > 1 ? ` within ${Math.round(unattendedWaitMs / 1000)}s` : ""}. Answer it in the Approvals inbox and resume, or re-run attended.`
+          : `Approval ${req.id} expired without a decision.`,
     data: {
       approvalId: req.id,
       decisionNote: resolved.decisionNote ?? null,
+      // Typed cause, so a reader of the event (the decision feed, the outcome
+      // banner) can say WHY it expired without parsing the message.
+      unattended: unattendedWaitMs !== null,
+      waitedMs: unattendedWaitMs,
     },
   });
   return { state: blockedState, rejected: true, changesGuidance: null };

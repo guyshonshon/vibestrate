@@ -99,6 +99,8 @@ The run page shows an approval banner with **Approve**, **Reject** and, for an a
 
 **The gate holds until you decide.** List a stage under `policies.requireApprovalAtStages` and the run pauses there once, on the first pass through it, with the reason "project policy requires approval before continuing past the *stage* stage." An agent can also ask for a gate of its own by emitting `HUMAN_APPROVAL: REQUIRED`.
 
+**Unattended runs cannot hold.** With `--unattended` nobody is there to decide, so the request expires after `policies.unattendedApprovalTimeoutMs` (default 0, at once) and the run ends `blocked`, with the cause on the event and in the decision feed. The request stays in the Approvals inbox: answer it there and resume, or re-run attended.
+
 </div>
 
 ## When you pause it yourself

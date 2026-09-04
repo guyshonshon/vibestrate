@@ -788,7 +788,9 @@ export async function runRunCommand(
     abortSignal: cliAbort.signal,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);
-      if (msg.startsWith("Pausing for human approval")) {
+      // An unattended run cannot be decided in time; the gate itself prints
+      // what happens instead, so the invitation below would be false there.
+      if (msg.startsWith("Pausing for human approval") && options.unattended !== true) {
         const url = server?.url;
         if (url) {
           console.log(

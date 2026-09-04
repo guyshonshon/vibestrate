@@ -328,7 +328,14 @@ function entryFor(e: VibestrateEvent): Partial | null {
     case "approval.rejected":
       return { cls: "enforced", anchor: onStep(), stepId: step, title: "approval rejected", detail: str(d, "decisionNote"), tone: "bad" };
     case "approval.expired":
-      return { cls: "enforced", anchor: onStep(), stepId: step, title: "approval expired", detail: null, tone: "bad" };
+      return {
+        cls: "enforced",
+        anchor: onStep(),
+        stepId: step,
+        title: "approval expired",
+        detail: d["unattended"] === true ? "unattended run, nobody could answer" : null,
+        tone: "bad",
+      };
     case "budget.limit": {
       const resolved = str(d, "resolved");
       return {
