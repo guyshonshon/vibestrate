@@ -70,7 +70,25 @@ jobs:
       # feature PR, but anything that ships to a user's machine should.
       # Fix a transitive pin with pnpm.overrides - Dependabot cannot.
       - name: Audit (prod)
-        run: pnpm audit --prod
+        # The npm audits endpoint drops for tens of minutes while the registry
+        # itself answers and status.npmjs.org stays green (45 minutes of socket
+        # timeouts from two networks on 2026-09-04). pnpm's own three retries
+        # span about three minutes, which covers a blip, not an outage. Only a
+        # transport error is retried; a real finding fails on the first attempt,
+        # so the gate's threshold is unchanged.
+        run: |
+          for attempt in 1 2 3 4; do
+            if pnpm audit --prod > audit.log 2>&1; then cat audit.log; exit 0; fi
+            cat audit.log
+            # A finding fails on the first attempt. Only a transport error is retried.
+            if ! grep -qE "ERR_SOCKET_TIMEOUT|FetchError|ECONNRESET|ETIMEDOUT|ENOTFOUND" audit.log; then exit 1; fi
+            if [ "$attempt" -lt 4 ]; then
+              echo "audit endpoint unreachable, retrying in ${AUDIT_RETRY_DELAY:-180}s ($attempt/4)"
+              sleep "${AUDIT_RETRY_DELAY:-180}"
+            fi
+          done
+          echo "audit endpoint unreachable on every attempt"
+          exit 1
 
       # The last step release.sh runs that CI did not, which is exactly the
       # divergence the header above warns about. Packs the tarball, installs it
