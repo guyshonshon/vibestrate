@@ -1,0 +1,6 @@
+# docs/generated/ is generator output that tests/docs-generated-drift.test.ts
+# compares byte-for-byte against a fresh render. The Windows CI runner checks
+# out with core.autocrlf=true before the workflow turns it off, which rewrote
+# every file here to CRLF and made all of them read as stale. eol=lf overrides
+# autocrlf on checkout, so the committed bytes are identical on every OS.
+docs/generated/* text eol=lf
