@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+- **A page you visit can no longer make your dashboard do work.** The server
+  refused cross-site requests a browser marked `Sec-Fetch-Site: cross-site`, but
+  only on state-changing methods. A browser sends no `Origin` header at all for
+  an `<img>` or a no-cors fetch, so the origin rule never fired on one either,
+  and a plain `<img src="http://127.0.0.1:4317/api/...">` on any page you
+  happened to open reached a real handler. Reads were not harmless: provider
+  detection shells out to every coding CLI it knows, so the cheapest version of
+  this spawned processes on your machine in a loop. The check now covers every
+  method. Typing the address yourself still works, and `curl` and the CLI, which
+  send no such header, are unaffected. Found by auditing a CodeQL rate-limiting
+  alert that turned out to be pointing at something else.
+
+- **A TODO written in an HTML comment keeps its text.** `--!>` is the HTML
+  spec's other comment terminator and browsers accept it, but the harvester only
+  knew `-->`, so a TODO closed that way arrived on the Board with a stray `--!`.
+
+- **Two dead operations removed.** A derived-flow note ran a replace that
+  substituted `"no "` with itself, and the third-party attribution script
+  stripped `<email>` with a pattern that left an unbalanced `<` behind on a
+  malformed author field. Neither was reachable as a vulnerability; both were
+  wrong.
+
 ## 0.4.0
 
 - **The default flow is now three seats: planner, implementer, reviewer.**

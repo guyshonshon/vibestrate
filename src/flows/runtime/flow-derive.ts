@@ -333,7 +333,7 @@ export function compileFlowFromShape(
     );
     if (LENS_CONDITION[lens]) {
       notes.push(
-        `  ...and stands down automatically if the finished diff shows ${LENS_CONDITION[lens]!.replace(/_/g, " ").replace(/^no /, "no ")}. Force it on with --flow-force review-${lens}.`,
+        `  ...and stands down automatically if the finished diff shows ${LENS_CONDITION[lens]!.replace(/_/g, " ")}. Force it on with --flow-force review-${lens}.`,
       );
     }
   }

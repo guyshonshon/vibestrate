@@ -271,4 +271,16 @@ describe("grep pre-filter portability", () => {
     expect(TODO_GREP_QUERY).toBe("(TODO|FIXME|HACK|XXX|BUG)");
     expect(TODO_GREP_QUERY).not.toMatch(/\\b|\\d|\\w|\\s|\(\?/);
   });
+
+  // `-->` is not HTML's only comment terminator; the spec accepts `--!>` too, and
+  // browsers parse it. A TODO written in one used to keep a stray `--!` on the
+  // Board, because the trailing-closer regex only knew the common spelling.
+  it("strips both HTML comment terminators, not just the common one", () => {
+    expect(classify("<!-- TODO: rewrite this section properly --!>")?.text).toBe(
+      "rewrite this section properly",
+    );
+    expect(classify("<!-- TODO: rewrite this section properly -->")?.text).toBe(
+      "rewrite this section properly",
+    );
+  });
 });

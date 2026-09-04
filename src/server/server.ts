@@ -241,12 +241,25 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   // Two layers:
   //   1. Origin: when present it must resolve to a local host - and a MALFORMED
   //      Origin is now refused (fail-closed), not waved through.
-  //   2. Sec-Fetch-Site: on mutating methods, reject a request a browser marked
-  //      `cross-site`/`cross-origin`. Every modern browser sends this header, so
-  //      it closes the gap where a cross-site POST carries no Origin. Non-browser
-  //      clients (curl, scripts, the CLI's own calls) omit it and stay allowed -
-  //      they're local and not a CSRF vector.
-  const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+  //   2. Sec-Fetch-Site: reject a request a browser marked `cross-site` /
+  //      `cross-origin`, on EVERY method. Every modern browser sends this header,
+  //      so it closes the gap where a cross-site request carries no Origin at
+  //      all. Non-browser clients (curl, scripts, the CLI's own calls) omit it
+  //      and stay allowed - they're local and not a CSRF vector.
+  //
+  //      This ran on mutating methods only until a scan of the GET routes showed
+  //      why that is not enough. A browser sends NO Origin header for an `<img>`
+  //      or a no-cors fetch, so layer 1 never fires, and a GET skipped layer 2
+  //      entirely: any page the owner happened to visit could make this server
+  //      execute a GET handler. That is not hypothetical here - `/api/setup/
+  //      summary` shells out to every known coding CLI to detect providers, so
+  //      the cheapest version of the attack spawns processes on the owner's
+  //      machine in a loop. The response stays unreadable cross-origin (no CORS
+  //      headers are ever sent), so this is about the side effect and the cost,
+  //      not about exfiltration.
+  //
+  //      `none` stays allowed on purpose: that is a user typing the URL or
+  //      opening a bookmark, which is how someone reaches the dashboard at all.
   // Enforced only on a loopback bind: a non-loopback bind cannot know its own
   // reachable hostname, and `startServer` already made a bearer token mandatory
   // there.
@@ -277,21 +290,17 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
         return;
       }
     }
-    if (MUTATING_METHODS.has(req.method)) {
-      const site = req.headers["sec-fetch-site"];
-      // Browser-sent: same-origin / same-site / none are fine; cross-site /
-      // cross-origin are CSRF. Absent (non-browser) is allowed.
-      if (
-        typeof site === "string" &&
-        site !== "same-origin" &&
-        site !== "same-site" &&
-        site !== "none"
-      ) {
-        await reply
-          .code(403)
-          .send({ error: "Cross-site state-changing requests are not allowed." });
-        return;
-      }
+    const site = req.headers["sec-fetch-site"];
+    // Browser-sent: same-origin / same-site / none are fine; cross-site /
+    // cross-origin are CSRF. Absent (non-browser) is allowed.
+    if (
+      typeof site === "string" &&
+      site !== "same-origin" &&
+      site !== "same-site" &&
+      site !== "none"
+    ) {
+      await reply.code(403).send({ error: "Cross-site requests are not allowed." });
+      return;
     }
   });
 

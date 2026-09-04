@@ -173,6 +173,29 @@ describe("server routes", () => {
     expect(res.status).toBe(403);
   });
 
+  // A browser sends no Origin header for an `<img>` or a no-cors fetch, so the
+  // Origin layer never fires on one. Until the Sec-Fetch-Site check covered
+  // every method, that left any page the owner visited able to drive this
+  // server's GET handlers - one of which shells out to detect providers.
+  it("blocks a cross-site GET, which carries no Origin at all", async () => {
+    const res = await fetch(`${server!.url}/api/runs`, {
+      headers: { "sec-fetch-site": "cross-site" },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("allows the dashboard's own GET (Sec-Fetch-Site: same-origin)", async () => {
+    const res = await fetch(`${server!.url}/api/runs`, {
+      headers: { "sec-fetch-site": "same-origin" },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("allows a GET with no Sec-Fetch-Site, which is curl and the CLI's own calls", async () => {
+    const res = await fetch(`${server!.url}/api/runs`);
+    expect(res.status).toBe(200);
+  });
+
   it("allows a same-origin state-changing request (Sec-Fetch-Site: same-origin)", async () => {
     const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
       method: "POST",

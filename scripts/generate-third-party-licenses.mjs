@@ -194,9 +194,14 @@ function homepageOf(pkg) {
 
 function authorOf(pkg) {
   const a = pkg.author;
-  if (typeof a === "string") return a.replace(/\s*<[^>]*>/g, "").trim() || null;
-  if (a && typeof a.name === "string") return a.name;
-  return null;
+  const raw = typeof a === "string" ? a : typeof a?.name === "string" ? a.name : null;
+  if (raw === null) return null;
+  // npm's author field is `Name <email> (url)`. Take the name by truncating at
+  // the first `<` or `(` rather than stripping the tail: a strip of `<[^>]*>`
+  // leaves an unbalanced `<` behind whenever the closing bracket is missing, and
+  // this string is written verbatim into the published attribution notice. Both
+  // shapes go through here, so the object form cannot skip the normalisation.
+  return raw.split(/[<(]/)[0].trim() || null;
 }
 
 /**

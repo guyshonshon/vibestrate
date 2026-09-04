@@ -196,8 +196,10 @@ export function commentBodies(line: string): string[] {
  *  separator between the marker and the actual text. */
 const AFTER_MARKER_RE = /^(?:\([^)]{0,64}\))?[ \t]*[:\-–—]?[ \t]*/;
 
-/** Trailing block-comment closers, so a `/* ... *\/` TODO does not keep them. */
-const TRAILING_CLOSER_RE = /(?:\*\/|-->)\s*$/;
+/** Trailing block-comment closers, so a `/* ... *\/` TODO does not keep them.
+ *  `--!>` is the HTML spec's other comment terminator - browsers and the parser
+ *  accept it, so a TODO written in one kept a stray `--!` on the Board. */
+const TRAILING_CLOSER_RE = /(?:\*\/|--!?>)\s*$/;
 
 const MARKER_PRIORITY: Record<TodoMarker, Priority> = {
   FIXME: "high",
