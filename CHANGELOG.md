@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
+
+- **The default flow is now three seats: planner, implementer, reviewer.**
+  Review findings go straight back to the implementer, which re-enters with
+  them in context - no dedicated fixer seat, no verify turn; merge-ready is an
+  approved review plus passing validation. The implementer self-reviews its
+  own diff before every hand-off, and the scaffolded reviewer runs under a new
+  `review_exec` permission profile: it can execute the tests it judges (the
+  claude-code invocation drops the edit tools - a tool-layer gate, not a
+  prompt request). Profiling real runs showed the old pipeline spent five of
+  six turns around the one turn that writes code. The six-seat pipeline
+  (architect, fixer, independent verify gate) is unchanged and available as
+  the `deep` flow.
 
 - **A step gets its inputs whole, and can refuse to run without one.** Handoffs
   between steps used to be summarized by fixed byte thresholds that knew nothing
@@ -24,6 +36,34 @@
   shrink or drop an input. On a benchmark run it handed a reviewer the diff the
   flow had not given it, 1,838 bytes traced byte for byte to the run's own
   snapshot.
+
+- **Steering a live run works, and the dashboard can do it.** `vibe steer`
+  queued a note onto a running run and reported it queued - and on every flow
+  that ships, nothing ever read it. The drain had a single call site inside the
+  graph frontier, and no built-in flow declares `needs`, so `default` and the
+  other thirteen all took the linear walk. A second defect stacked on top: the
+  orchestrator persists state whole-object from a snapshot taken before the
+  turn, so a note queued while you watched a step go wrong was written to disk
+  and then wiped by the post-turn write. Both are fixed, both with a test that
+  fails against the old code. `pendingGuidance` now has one funnel - appended by
+  whoever queues it, removed only by an atomic drain - so a whole-object write
+  can neither clobber it nor bring a drained note back.
+
+- **A Steer box on the run screen**, in the control centre directly above the
+  transcript: the run's input beside its output. Pick which step reads the note
+  from the run's own steps, and the box says when nothing is running to read it
+  rather than implying it landed. Notes are redacted on the way into the prompt,
+  never at rest, because the secret matcher fires on ordinary English and
+  redacting a stored note would destroy it with no copy to recover.
+
+- **Every docs diagram is on the design system now.** The figures were drawn
+  with `currentColor` at 0.28 opacity and 11px labels, which is the weakest
+  convention on the page rather than the design: the site defines
+  `--violet-deep`, `--fg-100` and Geist, and those figures used none of them.
+  All fifty-five were redrawn across two passes - filled surfaces, white
+  labels, violet secondaries, heavier connectors, and about 1.7x the type size
+  at 720px. Geometry is untouched, so nothing reflowed, and no page shows a
+  bold drawing beside a faint one.
 
 - **Your codebase's TODO comments are now a backlog you can pick from.**
   Adopting Vibestrate on a project that is already underway used to mean a
@@ -62,6 +102,7 @@
   so they cannot simply be deleted; they are pinned to Socket's zero-dependency
   replacements instead. Worth stating plainly because it changes what lands in
   your `node_modules`: those five now come from `@socketregistry`.
+
 - **The docs describe the flow the product actually runs.** The default flow
   became three seats and four steps, but the pages explaining it still walked
   eight: `concepts/workflow.md` kept an architect, a dedicated fixer and a
@@ -74,6 +115,7 @@
   are real run statuses that `--resume-stage` accepts, they just belong to
   `deep` rather than to the default. The six-seat pipeline is now described
   where it lives, as `deep`.
+
 - **One text colour, and labels in their own voice.** Secondary text used
   three near-white tokens within three percent of each other, which separated
   nothing and only made text look tired - and there is no opacity anywhere in
@@ -83,6 +125,7 @@
   they read as a different kind of type from prose rather than a dimmer shade
   of it. Done at the token level, so it is one edit and one revert across
   roughly 1,700 call sites.
+
 - **The Run assurance card leads with what went wrong.** Four gates used to
   render as four equal columns inside a 474px panel: 104px per cell, every
   cell forced to 142px by the one that wrapped, and three of the four holding
@@ -90,6 +133,7 @@
   room for a real sentence; gates that cleared collapse to one line; the raw
   status codes are gone (every one already appears above it in words); and
   how the run was conducted moves behind a disclosure.
+
 - **The Supervisor now speaks up when a run does not finish.** Any run that
   ends without completing gets a typed cause and a Supervisor intervention: a
   one-line summary of what stopped it and what it proposes to do, raised as a
@@ -100,11 +144,13 @@
   the remedy itself, but only where the fault is deterministically an
   environment fault; exhaustion and unknown are never self-executed, and the
   on-disk pause flag overrides the setting either way.
+
 - **Queueing a task from the CLI now starts the work.** The config schema
   documents this as an invariant - it is the stated reason Supervisor autonomy
   has two settings and not three - but only the dashboard and the TUI ever
   called `ensureSchedulerRunning`, so `vibe queue add` wrote a card into a
   queue nothing drained.
+
 - **A run now records WHY it ended, as a code.** `error` is free text, so
   everything downstream guessed from it - the dashboard identified a budget
   stop with `errLower.includes("spend cap")`, for a cause that already emits a
@@ -113,6 +159,7 @@
   supervisor branches on to decide whether a failure is safe to act on. Only a
   deterministic environment fault is auto-remediable; exhaustion and unknown
   are explicitly not.
+
 - **A stopped Docker daemon is no longer reported as failed validation.** A
   missing binary counted as an environment fault; a tool that is installed
   with its daemon down did not, so a run whose `docker compose` never got to
@@ -124,6 +171,7 @@
   are narrow and name the tool reporting its own daemon unreachable: a bare
   connection refused stays a real failure, because a suite that cannot reach a
   service it was supposed to start IS a defect.
+
 - **Scheduled runs are unattended, which is what makes a scheduler worker
   safe.** The argv the scheduler spawned omitted `--unattended`, so a
   scheduled run took the approval gate's indefinite branch - the gate's own
@@ -131,11 +179,13 @@
   forever", and with a single in-flight slot that is exactly what happened.
   `vibe tasks sequence` now accepts and forwards the flag too, so the
   supervised path carries the same contract.
+
 - **Validation commands are bounded.** They ran with no timeout and no
   tree-kill, so a command that blocks - `docker compose up` waiting on a
   healthcheck is the obvious one - hung the run forever. An unattended run
   promises to terminate on its own and could not keep that promise. New
   `commands.validateTimeoutMs`, default 15 minutes.
+
 - **Seats that are allowed to run commands can now actually run them.** A
   permission profile could say `allowShell: true` and the agent still could
   not execute anything: `--permission-mode acceptEdits` auto-approves file
@@ -149,43 +199,18 @@
   read-only inspection, and widenable per profile with `allowedCommands`.
   Package installers stay out of the default - those reach the network and
   need naming explicitly.
+
 - **A turn that can mutate the worktree is diff-gated whether it holds the
   edit tools or a shell.** The pre-turn snapshot used to key on `allowWrite`,
   which left a shell-capable reviewer as the one executing seat with no
   snapshot, no secret scan, no broker record and no rollback. It now keys on
   `allowWrite || allowShell`.
+
 - **The read-only clamp resolves the built-in profile, never project config.**
   `vibe init` scaffolds a `read_only` profile, and project config wins over
   the builtin - so a project one boolean from `allowShell: true` could have
   handed a shell to investigation and strict-apply-only runs, the two paths
   whose whole purpose is to affect nothing.
-- **The default flow is now three seats: planner, implementer, reviewer.**
-  Review findings go straight back to the implementer, which re-enters with
-  them in context - no dedicated fixer seat, no verify turn; merge-ready is an
-  approved review plus passing validation. The implementer self-reviews its
-  own diff before every hand-off, and the scaffolded reviewer runs under a new
-  `review_exec` permission profile: it can execute the tests it judges (the
-  claude-code invocation drops the edit tools - a tool-layer gate, not a
-  prompt request). Profiling real runs showed the old pipeline spent five of
-  six turns around the one turn that writes code. The six-seat pipeline
-  (architect, fixer, independent verify gate) is unchanged and available as
-  the `deep` flow.
-- **Every docs diagram is on the design system now.** Thirty-six figures were
-  still drawn the old way - `currentColor` at 0.28 opacity, rendered at 560px -
-  while the newer ones used the site's violet, white and Geist. Mixed styles on
-  neighbouring pages read worse than either alone, so the remaining thirty-six
-  were converted: filled surfaces, white labels, violet secondaries, heavier
-  connectors, and a uniform upscale to 720px. Geometry is untouched, so nothing
-  reflowed. All 55 figures now take their colour from the tokens.
-
-- **The docs diagrams are drawn on the design system now.** They were matching
-  the forty-one figures already in the docs - `currentColor` at 0.28 opacity,
-  11px labels - which is the weakest convention on the page rather than the
-  design: the site defines `--violet-deep`, `--fg-100` and Geist, and those
-  figures use none of them. Redrawn with the tokens: violet badges carrying real
-  names, white type, filled containers, bold connectors, and about 1.7x the type
-  size. The chain figure on Flow, Seat, Role and Profile came with them, so no
-  page shows a bold drawing beside a faint one.
 
 - **The docs overview now explains the docs.** It described the product and
   stopped, so the shape of the manual - what a page looks like, which of the
@@ -241,6 +266,7 @@
   refused before any agent ran. The bound is now 65,536 - GitHub's own
   issue-body limit - enforced by one shared schema so the boundaries cannot
   drift apart again.
+
 - **Two first-run killers from the head-to-head benchmark, fixed.** `vibe init`
   hardcoded `mainBranch: main`, so on a `master` repository every run died at
   worktree creation with `fatal: invalid reference: main` - the first run a new
@@ -409,25 +435,6 @@
   the folder. The warning is deliberately not something **Fix what's safe**
   applies: every other doctor fix stays inside `.vibestrate/`, and your
   `.gitignore` is yours.
-
-- **Steering a live run works, and the dashboard can do it.** `vibe steer`
-  queued a note onto a running run and reported it queued - and on every flow
-  that ships, nothing ever read it. The drain had a single call site inside the
-  graph frontier, and no built-in flow declares `needs`, so `default` and the
-  other thirteen all took the linear walk. A second defect stacked on top: the
-  orchestrator persists state whole-object from a snapshot taken before the
-  turn, so a note queued while you watched a step go wrong was written to disk
-  and then wiped by the post-turn write. Both are fixed, both with a test that
-  fails against the old code. `pendingGuidance` now has one funnel - appended by
-  whoever queues it, removed only by an atomic drain - so a whole-object write
-  can neither clobber it nor bring a drained note back.
-
-- **A Steer box on the run screen**, in the control centre directly above the
-  transcript: the run's input beside its output. Pick which step reads the note
-  from the run's own steps, and the box says when nothing is running to read it
-  rather than implying it landed. Notes are redacted on the way into the prompt,
-  never at rest, because the secret matcher fires on ordinary English and
-  redacting a stored note would destroy it with no copy to recover.
 
 - **A docs page is its sections now, not one box called "Going deeper".** Every
   page filed its real content under a single catch-all heading, so it rendered
