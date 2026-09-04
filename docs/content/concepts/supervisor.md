@@ -105,7 +105,7 @@ supervised:
       profile: null   # null = the supervisor's own profile
 ```
 
-Additions are capped at four per step and 8,000 bytes each, carry the supervisor's stated reason, and each becomes a `supervisor.context_injection` event with `effect: added`, its source, label and size. Each tier also records a verdict per step, `added`, `declined` or `failed`, so a step that got nothing extra is distinguishable from an engine that never ran. The step's context packet at `artifacts/flows/<step-id>/context-packet.json` lists what was delivered whole, what was summarized, what was missing and what was added.
+Additions are capped at four per step and 8,000 bytes each, carry the supervisor's stated reason, and each becomes a `supervisor.context_injection` event with `effect: added`, its source, label and size. Each tier also records a verdict per step, `added`, `declined` or `failed`, so a step that got nothing extra is distinguishable from an engine that never ran. Both show on the run page in the supervisor's decision feed, on the step they belong to: an addition as what was added and why, the model tier's decline as a judgment, a failure as a warning. The step's context packet at `artifacts/flows/<step-id>/context-packet.json` lists what was delivered whole, what was summarized, what was missing and what was added.
 
 ## Judgment, enforced, or structural
 

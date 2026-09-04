@@ -18,7 +18,8 @@
   step did not declare, with sizes and where to read them. Turn on
   `supervised.supervisor.contextEngine.enabled` and the Supervisor also reads
   those outputs and injects up to two, the artifact's own bytes, with its reason
-  recorded as a `supervisor.context_injection` event. It is structurally
+  recorded as a `supervisor.context_injection` event and shown in the
+  supervisor's decision feed on the run page. It is structurally
   additive: the engine is never shown what a step already has, so it cannot
   shrink or drop an input. On a benchmark run it handed a reviewer the diff the
   flow had not given it, 1,838 bytes traced byte for byte to the run's own

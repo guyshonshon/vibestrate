@@ -175,4 +175,91 @@ describe("deriveEngagement", () => {
     expect(waiting.tone).toBe("warn");
     expect(waiting.title).toContain("wait");
   });
+
+  it("surfaces what the supervisor's context engine added to a step, and the model tier's silence", () => {
+    const out = deriveEngagement([
+      ev("supervisor.context_injection", {
+        stepId: "review",
+        engineId: "model",
+        effect: "added",
+        source: "model-selected:diff",
+        label: "Diff",
+        reason: "the reviewer must inspect the actual code changes",
+        bytes: 1838,
+      }),
+      // The engine's own outcome for the same step also says `added`; the
+      // injection row above already told it, so this must not become a second row.
+      ev("supervisor.context_injection", {
+        stepId: "review",
+        engineId: "model",
+        effect: "added",
+        injected: 1,
+        dropped: 0,
+        note: null,
+        error: null,
+      }),
+      ev("supervisor.context_injection", {
+        stepId: "review",
+        engineId: "deterministic",
+        effect: "added",
+        source: "undeclared-outputs",
+        label: "Produced by this run, not sent to this step",
+        reason: "2 output(s) this run produced are outside this step's declared inputs.",
+        bytes: 140,
+      }),
+      ev("supervisor.context_injection", {
+        stepId: "plan",
+        engineId: "model",
+        effect: "declined",
+        injected: 0,
+        dropped: 0,
+        note: "nothing here would change what this step does",
+        error: null,
+      }),
+      // The manifest declining means the step already had everything: no row.
+      ev("supervisor.context_injection", {
+        stepId: "plan",
+        engineId: "deterministic",
+        effect: "declined",
+        injected: 0,
+        dropped: 0,
+        note: "Every output this run has produced is already declared by this step.",
+        error: null,
+      }),
+      ev("supervisor.context_injection", {
+        stepId: "implement",
+        engineId: "model",
+        effect: "failed",
+        injected: 0,
+        dropped: 0,
+        note: null,
+        error: "Context engine did not run: provider exited 1",
+      }),
+    ]);
+
+    expect(out.map((e) => e.title)).toEqual([
+      "context added · Diff",
+      "context added · Produced by this run, not sent to this step",
+      "context engine declined · nothing added",
+      "context engine failed · model",
+    ]);
+
+    const diff = out[0]!;
+    // The model tier judged relevance: advisory, so it is a judgment, on its step.
+    expect(diff.cls).toBe("judgment");
+    expect(diff.anchor).toBe("step");
+    expect(diff.stepId).toBe("review");
+    expect(diff.detail).toContain("inspect the actual code changes");
+    expect(diff.detail).toContain("1838 bytes");
+
+    // The manifest states a fact about the run's shape, not an opinion.
+    expect(out[1]!.cls).toBe("structural");
+
+    expect(out[2]!.cls).toBe("judgment");
+    expect(out[2]!.stepId).toBe("plan");
+    expect(out[2]!.detail).toContain("nothing here would change");
+
+    expect(out[3]!.tone).toBe("warn");
+    expect(out[3]!.detail).toContain("exited 1");
+  });
 });

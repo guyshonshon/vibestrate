@@ -148,6 +148,54 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: inert ? "warn" : "bad",
       };
     }
+    case "supervisor.context_injection": {
+      // Two shapes share this type. A per-injection event carries `label` and
+      // `bytes`: one thing the supervisor added to a step, shown as exactly
+      // that. A per-engine outcome carries `injected`: its `added` is already
+      // told by the injection rows, so only a model tier's decline (a judgment
+      // that nothing was relevant) and any failure earn a row. The
+      // deterministic tier declining means the step already had everything,
+      // which is not a supervisory moment. The model tier is a judgment, the
+      // manifest is a fact about the run's shape: structural.
+      const effect = str(d, "effect");
+      const engine = str(d, "engineId");
+      const label = str(d, "label");
+      if (label !== null) {
+        const bytes = num(d, "bytes");
+        const detail = [str(d, "reason"), bytes === null ? null : `${bytes} bytes`]
+          .filter((x): x is string => x !== null)
+          .join(" · ");
+        return {
+          cls: engine === "model" ? "judgment" : "structural",
+          anchor: onStep(),
+          stepId: step,
+          title: `context added · ${label}`,
+          detail: detail || null,
+          tone: "info",
+        };
+      }
+      if (effect === "failed") {
+        return {
+          cls: "structural",
+          anchor: onStep(),
+          stepId: step,
+          title: `context engine failed${engine ? ` · ${engine}` : ""}`,
+          detail: str(d, "error"),
+          tone: "warn",
+        };
+      }
+      if (effect === "declined" && engine === "model") {
+        return {
+          cls: "judgment",
+          anchor: onStep(),
+          stepId: step,
+          title: "context engine declined · nothing added",
+          detail: str(d, "note"),
+          tone: "info",
+        };
+      }
+      return null;
+    }
     case "review.decision": {
       const dec = str(d, "decision") ?? "decision";
       return {
