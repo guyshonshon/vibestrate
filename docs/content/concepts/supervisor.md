@@ -86,6 +86,27 @@ A suggested posture becomes a rule only if you say so. `posture.autoApplySandbox
 
 The two switches are not guarded alike. The approval gate steps aside twice: an explicit `--permission-mode` wins over it, and it is suppressed for unattended runs, where a prompt would only stall. The sandbox has neither escape - `autoApplySandbox` raises isolation on a `sandbox-suggested` run regardless of `--permission-mode`, because it only ever raises safety and there is nothing to stall. What it does not do is pretend: only a provider CLI that enforces a real OS sandbox gets one, and a seat on a provider without one degrades and is reported as unsandboxed rather than counted as protected. The default supervisor stays posture-neutral, so a plain `vibe run` meets none of this.
 
+## Context it adds, never removes
+
+Between steps, a seat receives the inputs its step declares, and they arrive whole: prior artifacts are delivered in full up to a budget of 32K tokens (2K under the `compact` context policy), and only when that ceiling is genuinely hit are the largest inputs summarized, largest first. An input a step names in `requiredInputs` is never summarized; if it is missing, or would only fit as a summary, the run stops before the step starts rather than let the model work from a digest. The [flow YAML reference](/docs/reference/flow-yml) has the field.
+
+The supervisor's part is what a step was *not* given. Every run produces more than any one step declares, and a reviewer that never saw the architecture step's output will report a settled decision as a finding. So before each seated step, the supervisor looks at the outputs this run has produced that the step did not declare, and may add from them. It is never shown what the step already has, so there is no shape in which it could shrink or drop an input: adding is the only sentence it can form.
+
+Two tiers do that work.
+
+- **A manifest, always on, no model call.** One note listing every undeclared output with its size and where to read it. A fact, not a guess; the seat decides whether to open one.
+- **A model tier, off by default.** With `supervised.supervisor.contextEngine.enabled: true`, the supervisor reads a 1,500-byte preview of each candidate and names up to two worth having. The run then injects up to 6,000 bytes of the artifact's own text, never the supervisor's paraphrase, so a hallucinated name resolves to nothing. One model call per step; a provider failure adds nothing and records why.
+
+```yaml
+supervised:
+  supervisor:
+    contextEngine:
+      enabled: true
+      profile: null   # null = the supervisor's own profile
+```
+
+Additions are capped at four per step and 8,000 bytes each, carry the supervisor's stated reason, and each becomes a `supervisor.context_injection` event with `effect: added`, its source, label and size. Each tier also records a verdict per step, `added`, `declined` or `failed`, so a step that got nothing extra is distinguishable from an engine that never ran. The step's context packet at `artifacts/flows/<step-id>/context-packet.json` lists what was delivered whole, what was summarized, what was missing and what was added.
+
 ## Judgment, enforced, or structural
 
 Every entry in the decision feed carries one of three labels.

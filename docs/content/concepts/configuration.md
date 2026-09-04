@@ -103,7 +103,7 @@ The file is split into top-level sections. The Config page groups them for you; 
 | `adaptiveSpecUp` | [Spec-up](/docs/concepts/spec-up) |
 | `codebaseMapRoles` | [VIBESTRATE.md](/docs/concepts/vibestrate-md) |
 | `ponytail` | [Ponytail](/docs/concepts/ponytail) |
-| `supervised` | [Supervised tasks](/docs/concepts/supervised-tasks) |
+| `supervised` | [Supervised tasks](/docs/concepts/supervised-tasks); `supervised.supervisor.contextEngine` is under [Supervisor](/docs/concepts/supervisor) |
 
 `project`, `methodologyRoles`, `budget`, `resilience`, `session`, `scheduler`, `editor` and `commits` have no concept page. They are described field by field, from the source, in the [`project.yml` reference](/docs/reference/config).
 

@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- **A step gets its inputs whole, and can refuse to run without one.** Handoffs
+  between steps used to be summarized by fixed byte thresholds that knew nothing
+  about the model's context. Measured on a real twelve-step run, two thirds of
+  every handoff was compressed to reclaim under one percent of a window that was
+  never close to full. Prior artifacts now arrive in full up to a 32K-token
+  budget (2K under `compact`), and only the largest are summarized past it. A
+  flow step can also name `requiredInputs`: the run stops before that step
+  rather than hand the model a digest of something it cannot do without. The
+  built-in default flow's reviewer now requires the brief and the execution
+  record.
+
+- **The Supervisor can add context to a step, and never take any away.** Every
+  seated step now receives a manifest of the outputs this run produced that the
+  step did not declare, with sizes and where to read them. Turn on
+  `supervised.supervisor.contextEngine.enabled` and the Supervisor also reads
+  those outputs and injects up to two, the artifact's own bytes, with its reason
+  recorded as a `supervisor.context_injection` event. It is structurally
+  additive: the engine is never shown what a step already has, so it cannot
+  shrink or drop an input. On a benchmark run it handed a reviewer the diff the
+  flow had not given it, 1,838 bytes traced byte for byte to the run's own
+  snapshot.
+
 - **Your codebase's TODO comments are now a backlog you can pick from.**
   Adopting Vibestrate on a project that is already underway used to mean a
   working setup and an empty Board, with the actual work still living in your

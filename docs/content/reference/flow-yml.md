@@ -129,7 +129,7 @@ capabilities:               # read only when Vibestrate is choosing a flow for
 
 <div class="docs-callout">
 
-**Did you know?** Seats are checked against the steps that use them before a run starts, so a step naming a seat the flow never declared is a load error rather than a mid-run surprise. `inputs` and `outputs` get no such cross-check: a step consuming `plan` when nothing produces it still loads, and at runtime that token arrives marked unavailable and the turn runs without it - so this one costs you the model call.
+**Did you know?** Seats are checked against the steps that use them before a run starts, so a step naming a seat the flow never declared is a load error rather than a mid-run surprise. `inputs` and `outputs` get no such cross-check: a step consuming `plan` when nothing produces it still loads, and at runtime that token arrives marked unavailable and the turn runs without it - so this one costs you the model call. `requiredInputs` is the exception: name a token there and the run refuses to start the step without it, whole.
 
 </div>
 
@@ -176,6 +176,7 @@ Stops and waits for you. No model.
 | `approval` | Turns the step into a gate: `{ reason, requestedAction, userMessage, riskLevel }`. `riskLevel` defaults to `medium`. |
 | `repeat` | Run this step `times` (2-8) in parallel, for a panel. |
 | `skipWhen` | Skip a *checking* step on positive evidence of absence in the real diff - `inert_diff` when the change is prose only. Never on a step that produces work: skipping that on diff evidence is circular. |
+| `requiredInputs` | Inputs this step cannot run without. Each must also appear in `inputs`, or the flow fails to load. At runtime they are delivered whole, never as a summary, and the run stops before the step starts if one is missing - unless its producer was skipped by the run itself (a read-only run, a `skipWhen`), which is recorded as an exemption in the step's context packet. The built-in default flow's reviewer requires `task-brief` and `execution`. |
 
 ## Graph flows
 

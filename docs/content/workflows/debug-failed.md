@@ -71,7 +71,7 @@ Read-only either way: you can look but not change anything. The status line says
 
 ## If status is `failed`
 
-A `failed` status means a stage raised an error it could not recover from. Three things to look at:
+A `failed` status means a stage raised an error it could not recover from. Four things to look at:
 
 1. **`events.ndjson`** - the last event before the failure shows which transition triggered the error.
 
@@ -79,7 +79,9 @@ A `failed` status means a stage raised an error it could not recover from. Three
 
 3. **The validation output** at `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/validation-results.json` - the exit codes, if the failure happened during validation. The `stdout` and `stderr` per command sit alongside under `validation/`.
 
-The run screen's **Events**, **Artifacts** and **Validation** inspector tabs read those three files.
+4. **The step's context packet** at `.vibestrate/runs/<runId>/artifacts/flows/<step-id>/context-packet.json` - what the step was given: each input marked whole, summarized or unavailable, the token budget, any required input that was missing (`contractViolations`; a run that stops with `Flow step "review" cannot run: ...` is this), and anything the supervisor added (`injections`).
+
+The run screen's **Events**, **Artifacts** and **Validation** inspector tabs read the first three of those files.
 
 Common causes:
 
