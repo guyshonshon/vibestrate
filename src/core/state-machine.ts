@@ -689,6 +689,16 @@ export class RunStateStore {
     if (!out.abortRequested && onDisk.state.abortRequested === true) {
       out = { ...out, abortRequested: true };
     }
+    // `pauseRequested` is the same shape of signal and was missing from this
+    // funnel, so a human's Pause was reverted by the orchestrator's next
+    // whole-object write - one built from a snapshot that predated the request.
+    // The CLI and the dashboard both reported success and the run kept going.
+    // Carried forward in one direction only: raising it here is what stops the
+    // drop, while LOWERING it stays the job of `mutate` (requestResume), so a
+    // stale in-memory true cannot re-pause a run somebody just resumed.
+    if (!out.pauseRequested && onDisk.state.pauseRequested === true) {
+      out = { ...out, pauseRequested: true };
+    }
     // `pendingGuidance` belongs to whoever queued it, not to the caller's
     // in-memory snapshot. A whole-object write built before a note arrived
     // would drop it; one built before a DRAIN would resurrect it. Deferring to

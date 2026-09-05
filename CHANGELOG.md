@@ -17,6 +17,14 @@
   accident, because the temp root's `/var` spelling never matched its
   `/private/var` real path - the containment check was not what stopped them.
 
+- **Pause works.** Pausing a run from the terminal or the dashboard set a flag
+  that the orchestrator's next save quietly wrote back over, because that save
+  restores a snapshot taken before your request arrived. Abort was carried
+  forward across that save and pause was not, an omission rather than a
+  decision. Both surfaces reported success, the run kept working, and the only
+  way to tell was that it never stopped. The signal is now carried forward the
+  same way abort is, in one direction only, so resuming still works.
+
 - **A checklist item's file hints cannot read outside the worktree.** Hints name
   files for the next step to read, they are written by a model, and their
   contents go into a durable run artifact. Containment was a string comparison,

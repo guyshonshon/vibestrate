@@ -182,12 +182,14 @@ export async function applyPauseIfRequested(input: {
     // the orphaned flag so future writes don't leave the run in an
     // inconsistent shape, and continue with the on-disk state.
     if (onDisk.pauseRequested) {
-      const cleared: RunState = {
-        ...onDisk,
-        pauseRequested: false,
-        updatedAt: nowIso(),
-      };
-      await input.store.write(cleared);
+      // Through `mutate`, not `write`: `write` defers to the on-disk value for
+      // this flag (see keepExternalSignals), so clearing it with a whole-object
+      // write would put the true straight back and leave the run unable to
+      // shed an orphaned pause.
+      const cleared = await input.store.mutate((fresh) => {
+        const next: RunState = { ...fresh, pauseRequested: false, updatedAt: nowIso() };
+        return { next, result: next };
+      });
       return cleared;
     }
     return onDisk;

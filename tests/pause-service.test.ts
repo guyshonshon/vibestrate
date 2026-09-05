@@ -223,3 +223,44 @@ describe("applyPauseIfRequested", () => {
     expect(after.pauseRequested).toBe(false);
   });
 });
+
+
+/**
+ * A pause is raised by ANOTHER process (`vibe pause`, the dashboard button)
+ * while the orchestrator is mid-turn holding a RunState in memory. Its next
+ * whole-object write must not carry the stale `false` back over it - which is
+ * exactly what happened: abortRequested and pendingGuidance were carried
+ * forward from disk and pauseRequested was not, so the human's stop was
+ * discarded while the CLI and dashboard both reported success.
+ */
+describe("pauseRequested survives a whole-object write", () => {
+  it("is not reverted by a write built from a snapshot that predates it", async () => {
+    // What the orchestrator is holding across its turn.
+    const stale = await store.read();
+    expect(stale.pauseRequested).toBe(false);
+
+    await requestPause(store, events);
+    expect((await store.read()).pauseRequested).toBe(true);
+
+    // The orchestrator persists its turn, unaware of the request.
+    await store.write(stale);
+    expect((await store.read()).pauseRequested).toBe(true);
+  });
+
+  it("can still be lowered, so a resumed run does not re-pause itself", async () => {
+    await requestPause(store, events);
+    expect((await store.read()).pauseRequested).toBe(true);
+
+    // Lowering goes through mutate, which is what requestResume uses.
+    await store.mutate((fresh) => ({
+      next: { ...fresh, pauseRequested: false },
+      result: null,
+    }));
+    expect((await store.read()).pauseRequested).toBe(false);
+
+    // And a later whole-object write must not resurrect it.
+    const afterResume = await store.read();
+    await store.write(afterResume);
+    expect((await store.read()).pauseRequested).toBe(false);
+  });
+});
