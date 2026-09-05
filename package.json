@@ -1,6 +1,6 @@
 {
   "name": "vibestrate",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Vibestrate (BETA) is the missing piece of vibe-coding: an open-source, supervised coding flow that swaps Claude Code, Codex, Gemini, or local models across shared crews with approval gates and local run logs.",
   "license": "Apache-2.0",
   "author": "Guy Shonshon (https://shonshon.com)",
