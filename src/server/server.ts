@@ -303,7 +303,17 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     // So same-site keeps reaching the UI and its assets, and is refused on
     // `/api/*`, where the side effects live.
     if (typeof site === "string" && site !== "same-origin" && site !== "none") {
-      const sameSiteToTheUi = site === "same-site" && !req.url.startsWith("/api/");
+      // Scope comes from the route the router RESOLVED, never the raw URL -
+      // the same distinction the bearer gate below depends on, and for the same
+      // reason: the router percent-decodes segments and accepts an absolute-form
+      // target, so `/%61pi/runs` reaches the `/api/runs` handler while the raw
+      // string does not start with "/api/". Testing `req.url` here shipped that
+      // bypass; a same-site page could read the API through the encoded
+      // spelling. An unrouted request carries no pattern and cannot be proven
+      // outside API scope, so it is refused rather than guessed at.
+      const routeUrl = req.routeOptions.url;
+      const apiScoped = typeof routeUrl === "string" ? isApiRoute(routeUrl) : true;
+      const sameSiteToTheUi = site === "same-site" && !apiScoped;
       if (!sameSiteToTheUi) {
         await reply.code(403).send({ error: "Cross-site requests are not allowed." });
         return;

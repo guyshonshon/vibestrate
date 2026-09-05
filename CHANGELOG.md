@@ -17,6 +17,14 @@
   accident, because the temp root's `/var` spelling never matched its
   `/private/var` real path - the containment check was not what stopped them.
 
+- **The cross-site refusal now reads the resolved route, not the raw URL.** The
+  first cut of the rule above decided "is this the API" with a string test on
+  the request target. The router percent-decodes path segments before matching,
+  so `/%61pi/runs` reached the `/api/runs` handler while that string does not
+  begin with `/api/`, and a same-site page could read the API through the
+  encoded spelling. Scope now comes from the route the router resolved, which is
+  what the bearer-token gate already did.
+
 - **Another server on your localhost cannot drive the API either.** A browser
   decides "same site" without looking at the port, so a page served by any other
   local dev server counted as same-site with the dashboard and passed the check

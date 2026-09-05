@@ -194,6 +194,24 @@ describe("server routes", () => {
     expect(res.status).toBe(403);
   });
 
+  // The router percent-decodes path segments before matching, so a raw-string
+  // prefix test on req.url is not the API boundary: /%61pi/runs reaches the
+  // /api/runs handler. Scope must come from the resolved route pattern, which
+  // is what the bearer gate already does.
+  it("refuses the percent-encoded spelling of an API path, same-site", async () => {
+    const res = await fetch(`${server!.url}/%61pi/runs`, {
+      headers: { "sec-fetch-site": "same-site" },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("still serves the percent-encoded spelling to the dashboard itself", async () => {
+    const res = await fetch(`${server!.url}/%61pi/runs`, {
+      headers: { "sec-fetch-site": "same-origin" },
+    });
+    expect(res.status).toBe(200);
+  });
+
   it("still lets another local page link to the dashboard itself", async () => {
     const res = await fetch(`${server!.url}/`, {
       headers: { "sec-fetch-site": "same-site", "sec-fetch-mode": "navigate" },
