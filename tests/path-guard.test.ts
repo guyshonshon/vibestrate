@@ -197,6 +197,30 @@ describe("resolveSafePath - symlink chains that leave the root", () => {
     await expect(resolveSafePath("a/x.md", roots())).rejects.toBeInstanceOf(PathGuardError);
   });
 
+  // `path.resolve` collapses `..` lexically; the kernel does not - it resolves
+  // each component first, so a `..` AFTER a symlink goes up from where that link
+  // landed. `dl/../x` with `dl` pointing out of the root is `<outside>/x` to the
+  // OS and `<root>/x` to path.resolve. The guard approved it, and a write
+  // through the approved path landed outside the root.
+  it("refuses a target whose .. climbs out from where a symlink landed", async () => {
+    await fs.mkdir(path.join(outsideDir, "od"), { recursive: true });
+    await fs.symlink(path.join(outsideDir, "od"), path.join(root, "dl"));
+    await fs.symlink("dl/../planted.md", path.join(root, "notes.md"));
+    await expect(resolveSafePath("notes.md", roots())).rejects.toBeInstanceOf(PathGuardError);
+    // And nothing was created outside while we asked.
+    await expect(fs.stat(path.join(outsideDir, "planted.md"))).rejects.toThrow();
+  });
+
+  // The mirror: `..` that stays inside must still resolve, or every relative
+  // link in a normal project breaks.
+  it("still allows a .. that stays inside the root", async () => {
+    await fs.mkdir(path.join(root, "a", "b"), { recursive: true });
+    await fs.writeFile(path.join(root, "a", "target.md"), "hi\n");
+    await fs.symlink("../target.md", path.join(root, "a", "b", "up.md"));
+    const resolved = await resolveSafePath("a/b/up.md", roots());
+    expect(resolved.absolutePath).toContain("up.md");
+  });
+
   it("still allows a dangling symlink that stays inside the root", async () => {
     await fs.mkdir(path.join(root, "generated"), { recursive: true });
     await fs.symlink(path.join(root, "generated", "out.md"), path.join(root, "pending.md"));

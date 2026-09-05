@@ -156,7 +156,31 @@ async function resolveThroughLinks(
     if (target === null) return null;
     const realDir = await realLocationOf(path.dirname(current), budget);
     if (realDir === null) return null;
-    current = path.resolve(realDir, target);
+    // Walk the target COMPONENT BY COMPONENT rather than path.resolve'ing it.
+    // `path.resolve` collapses `..` lexically; the kernel does not. It resolves
+    // each component first, so a `..` placed AFTER a symlink goes up from where
+    // that link landed. `dl/../x` with `dl` pointing out of the root is
+    // therefore `<outside>/x` to the OS and `<root>/x` to path.resolve - the
+    // guard approved it, and a write through the approved path landed outside
+    // the root. That is the same one-textual-hop mistake this function was
+    // written to remove, hiding in the `..` handling.
+    const startAt = path.isAbsolute(target)
+      ? path.parse(path.resolve(target)).root
+      : realDir;
+    let walked = startAt;
+    for (const segment of target.split(/[\\/]+/)) {
+      if (segment === "" || segment === ".") continue;
+      if (segment === "..") {
+        // Up from where the path so far REALLY lands, which is what the kernel
+        // does and the only reason this walk exists.
+        const real = await realLocationOf(walked, budget);
+        if (real === null) return null;
+        walked = path.dirname(real);
+        continue;
+      }
+      walked = path.join(walked, segment);
+    }
+    current = walked;
   }
 }
 
