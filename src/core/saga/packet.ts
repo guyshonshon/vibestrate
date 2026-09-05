@@ -192,6 +192,12 @@ export async function readFreshFileReads(input: {
     if (!rel) continue;
     const normalized = rel.replace(/\\/g, "/");
     if (isSecretLikePath(normalized)) continue;
+    // Hints are RELATIVE by contract (the docstring above says so). Adding the
+    // project as a second root was needed for env links, which are relative -
+    // but it also made an ABSOLUTE hint resolvable anywhere under the project,
+    // including .git and another run's artifacts. Refusing absolute here keeps
+    // the env-link fix and closes what it widened.
+    if (normalized.startsWith("/") || /^[a-zA-Z]:\//.test(normalized)) continue;
 
     // Containment goes through the project's hardened resolver rather than a
     // string prefix test. The textual version refused "..", an absolute path
@@ -211,6 +217,11 @@ export async function readFreshFileReads(input: {
       try {
         const safe = await resolveSafePath(normalized, [root]);
         if (safe.isSecretLike) break;
+        // The existence test belongs INSIDE the loop: a root that contains the
+        // path but holds no such file must not consume the hint, or the run's
+        // own copy in the worktree is never reached when the project has the
+        // same relative path and neither does.
+        if (!(await pathExists(safe.absolutePath))) continue;
         resolved = safe.absolutePath;
         break;
       } catch {
@@ -220,7 +231,6 @@ export async function readFreshFileReads(input: {
     }
     if (resolved === null) continue;
 
-    if (!(await pathExists(resolved))) continue;
     const content = await readText(resolved).catch(() => null);
     if (content == null) continue;
     out.push({ path: normalized, content });

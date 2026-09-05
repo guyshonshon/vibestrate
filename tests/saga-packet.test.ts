@@ -258,6 +258,58 @@ describe("readFreshFileReads - containment", () => {
     }
   });
 
+  // Hints are relative by contract. Adding the project as a second root (so env
+  // links resolve) also made an ABSOLUTE hint resolvable anywhere under the
+  // project - .git, another run's artifacts - which is not what a step hint is
+  // for.
+  it("refuses an absolute hint even when it points inside the project", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-abs-")));
+    try {
+      const proj = path.join(base, "proj");
+      const wt = path.join(base, ".vibestrate-worktrees", "run-1");
+      await fs.mkdir(path.join(proj, ".vibestrate", "runs", "other"), { recursive: true });
+      await fs.mkdir(wt, { recursive: true });
+      await fs.writeFile(path.join(proj, ".vibestrate", "runs", "other", "notes.md"), "OTHER-RUN\n");
+      await fs.writeFile(path.join(wt, "ok.md"), "mine\n");
+
+      const reads = await readFreshFileReads({
+        worktreePath: wt,
+        projectRoot: proj,
+        fileHints: ["ok.md", path.join(proj, ".vibestrate", "runs", "other", "notes.md")],
+      });
+
+      expect(reads.map((r) => r.path)).toEqual(["ok.md"]);
+      expect(JSON.stringify(reads)).not.toContain("OTHER-RUN");
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
+  // The worktree copy wins. A root that contains the path but holds no such
+  // file must not consume the hint, or the run's own file is never reached.
+  it("prefers the worktree copy over a same-named file in the project", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-pref-")));
+    try {
+      const proj = path.join(base, "proj");
+      const wt = path.join(base, ".vibestrate-worktrees", "run-1");
+      await fs.mkdir(proj, { recursive: true });
+      await fs.mkdir(wt, { recursive: true });
+      await fs.writeFile(path.join(proj, "shared.md"), "PROJECT COPY\n");
+      await fs.writeFile(path.join(wt, "shared.md"), "WORKTREE COPY\n");
+
+      const reads = await readFreshFileReads({
+        worktreePath: wt,
+        projectRoot: proj,
+        fileHints: ["shared.md"],
+      });
+
+      expect(reads).toHaveLength(1);
+      expect(reads[0]!.content).toContain("WORKTREE COPY");
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
   it("still reads an ordinary file inside the worktree", async () => {
     const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-hints-ok-")));
     try {
