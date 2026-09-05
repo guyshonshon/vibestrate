@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.1
 
 - **The path guard follows a symlink chain to where it really lands**, at the
   leaf and through every parent directory. Judging a link by a single step was
