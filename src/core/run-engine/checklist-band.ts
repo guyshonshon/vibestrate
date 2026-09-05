@@ -21,7 +21,7 @@
 
 import path from "node:path";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
-import { getCurrentBranch, stageAndCommitAll, filesInCommit } from "../../git/git.js";
+import { stageAndCommitAll, filesInCommit } from "../../git/git.js";
 import { creditTrailers } from "../../git/commit-credit.js";
 import { getWorktreeDiffText, redactSecretsInText } from "../diff-service.js";
 import { buildStepPacket, readFreshFileReads } from "../saga/packet.js";
@@ -176,9 +176,7 @@ export function createChecklistBand(deps: ChecklistBandDeps): ChecklistBand {
       if (deps.worktreePath) {
         // Diff from the fork point of the branch the worktree forked from, so
         // committed prior steps are captured (git diff HEAD would miss them).
-        const baseBranch = await getCurrentBranch(deps.projectRoot).catch(
-          () => null,
-        );
+        const baseBranch = deps.config.git.mainBranch;
         accumulatedDiff = await getWorktreeDiffText({
           worktreePath: deps.worktreePath,
           baseBranch,

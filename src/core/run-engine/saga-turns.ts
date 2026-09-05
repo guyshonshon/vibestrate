@@ -24,7 +24,6 @@
 
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { getCrew, getCrewRole } from "../../agents/crew-registry.js";
-import { getCurrentBranch } from "../../git/git.js";
 import { getWorktreeDiffText, redactSecretsInText } from "../diff-service.js";
 import { readFreshFileReads } from "../saga/packet.js";
 import {
@@ -147,7 +146,7 @@ export async function runSagaSupervisorTurn(
   // Accumulated committed work (fork-point diff) for goal-alignment judgment.
   let diffSoFar = "";
   if (input.worktreePath) {
-    const baseBranch = await getCurrentBranch(deps.projectRoot).catch(() => null);
+    const baseBranch = deps.config.git.mainBranch;
     diffSoFar = await getWorktreeDiffText({
       worktreePath: input.worktreePath,
       baseBranch,
@@ -321,7 +320,7 @@ export async function runSagaEnhanceTurn(
   let diffSoFar = "";
   let freshRead = "";
   if (input.worktreePath) {
-    const baseBranch = await getCurrentBranch(deps.projectRoot).catch(() => null);
+    const baseBranch = deps.config.git.mainBranch;
     diffSoFar = await getWorktreeDiffText({
       worktreePath: input.worktreePath,
       baseBranch,
