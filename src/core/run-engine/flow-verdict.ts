@@ -133,12 +133,20 @@ async function evaluatePolicyBlockGate(input: {
  */
 async function evaluateScopeGate(input: {
   scope: DeclaredScope | null;
+  projectRoot: string;
   worktreePath: string;
   eventLog: EventLog;
 }): Promise<boolean> {
   if (!input.scope) return true;
   try {
-    const snapshot = await getDiffSnapshot({ worktreePath: input.worktreePath });
+    // From the fork point, for the reason the block-policy gate above states:
+    // a run that commits mid-run is invisible to a HEAD-based diff, and the
+    // architect's contract would then report clean over files it forbade.
+    const baseBranch = await getCurrentBranch(input.projectRoot);
+    const snapshot = await getDiffSnapshot({
+      worktreePath: input.worktreePath,
+      baseBranch,
+    });
     const files = snapshot.files.map((f) => f.path);
     const gate = evaluateScope(input.scope, files);
     if (!gate.declared) return true;
@@ -275,6 +283,7 @@ export async function finalizeFlowVerdict(
   const scopeClean =
     !deps.readOnly && input.worktreePath
       ? await evaluateScopeGate({
+          projectRoot: deps.projectRoot,
           scope: input.declaredScope ?? null,
           worktreePath: input.worktreePath,
           eventLog: input.eventLog,

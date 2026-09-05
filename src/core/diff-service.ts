@@ -369,9 +369,22 @@ async function runGit(
 export async function getDiffSnapshot(input: {
   worktreePath: string;
   baseRef?: string;
+  /** The branch this worktree forked from. Given one, the file list is taken
+   *  from the fork point (merge-base) instead of HEAD, so a run that COMMITS
+   *  mid-run is still seen whole - `git diff HEAD` reports nothing about its
+   *  own commits. `getWorktreeDiffText` has always done this; the snapshot did
+   *  not, and every gate keyed on the snapshot was blind to a committing agent
+   *  as a result. Absent or unresolvable falls back to HEAD, which is the
+   *  uncommitted tail only. */
+  baseBranch?: string | null;
 }): Promise<DiffSnapshot> {
   const worktreePath = input.worktreePath;
-  const baseRef = input.baseRef ?? "HEAD";
+  let baseRef = input.baseRef ?? "HEAD";
+  if (!input.baseRef && input.baseBranch) {
+    const mb = await runGit(worktreePath, ["merge-base", input.baseBranch, "HEAD"]);
+    const sha = mb.exitCode === 0 ? mb.stdout.trim().split("\n")[0] : null;
+    if (sha) baseRef = sha;
+  }
   const exists = await pathExists(worktreePath);
   if (!exists) {
     return {

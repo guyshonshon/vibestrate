@@ -59,8 +59,16 @@ export async function evaluateStepSkip(input: {
   }
 
   try {
+    // Resolved once, above the branch: both readers below must judge the SAME
+    // change. The snapshot used to default to HEAD, so an agent that committed
+    // its work inside its own worktree emptied the file list and the descent
+    // read the leftover dirty file as positive evidence of a prose-only change.
+    const baseBranch = await getCurrentBranch(input.projectRoot);
     if (step.skipWhen === "inert_diff") {
-      const snapshot = await getDiffSnapshot({ worktreePath: input.worktreePath });
+      const snapshot = await getDiffSnapshot({
+        worktreePath: input.worktreePath,
+        baseBranch,
+      });
       const descent = evaluateReviewDescent(
         snapshot.files.map((f) => f.path),
         input.policies,
@@ -75,10 +83,9 @@ export async function evaluateStepSkip(input: {
         : { skip: false, because: "the change is not strict prose" };
     }
 
-    const baseBranch = await getCurrentBranch(input.projectRoot);
     const [patch, snapshot] = await Promise.all([
       getWorktreeDiffText({ worktreePath: input.worktreePath, baseBranch }),
-      getDiffSnapshot({ worktreePath: input.worktreePath }),
+      getDiffSnapshot({ worktreePath: input.worktreePath, baseBranch }),
     ]);
     const facts = diffFactsFromPatch(
       patch,

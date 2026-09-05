@@ -17,6 +17,18 @@
   accident, because the temp root's `/var` spelling never matched its
   `/private/var` real path - the containment check was not what stopped them.
 
+- **A run's own commits no longer hide its change from the gates.** Every
+  diff-derived gate - the review and verify descent, change-scoped validation,
+  and the architect's scope contract - asked what changed against `HEAD`. A
+  worktree's own commits are invisible to that question, so an agent that
+  committed its work and left one prose file dirty presented that file as the
+  entire change: review skipped as prose-only, validation skipped as inert, and
+  the scope contract reporting clean over a file it forbade - with the run's
+  assurance record attesting to all of it. This was not only reachable by a
+  hostile agent. Checklist runs commit after every item, so the scope contract
+  has been reporting clean on those by construction. The gates now read from the
+  fork point, which is what the block-policy gate beside them always did.
+
 - **The cross-site refusal now reads the resolved route, not the raw URL.** The
   first cut of the rule above decided "is this the API" with a string test on
   the request target. The router percent-decodes path segments before matching,

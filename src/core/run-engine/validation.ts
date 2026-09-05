@@ -17,6 +17,7 @@ import {
   type ValidationResults,
 } from "../validation/validation-runner.js";
 import { getDiffSnapshot } from "../diff-service.js";
+import { getCurrentBranch } from "../../git/git.js";
 import { classifyChangedFilesForValidation } from "../validation/validation-scope.js";
 import {
   evaluateReviewDescent,
@@ -123,7 +124,10 @@ export async function runValidation(
   if (configured.length > 0 && deps.config.commands.scopeValidationByChange) {
     let decision: ReturnType<typeof classifyChangedFilesForValidation> | null = null;
     try {
-      const snap = await getDiffSnapshot({ worktreePath: ctx.worktreePath });
+      const snap = await getDiffSnapshot({
+        worktreePath: ctx.worktreePath,
+        baseBranch: await getCurrentBranch(deps.projectRoot),
+      });
       // Protected-path floor: a protected path (built-in globs + policies.protectedPaths)
       // is never inert - a workflow .yml or a user-protected .md still
       // validates in full. The matcher lives in supervisor/protected-paths.ts.
@@ -245,10 +249,15 @@ export async function mergeAcceptanceValidation(
 export async function evaluateReviewDescentForWorktree(
   worktreePath: string | null | undefined,
   policies: ProjectConfig["policies"],
+  /** The branch the worktree forked from. Without it the snapshot reads HEAD,
+   *  which reports nothing about the run's own commits - so a committing agent
+   *  could present a leftover prose file as the whole change and skip review. */
+  projectRoot?: string | null,
 ): Promise<ReviewDescentDecision | null> {
   if (!worktreePath) return null;
   try {
-    const snap = await getDiffSnapshot({ worktreePath });
+    const baseBranch = projectRoot ? await getCurrentBranch(projectRoot) : null;
+    const snap = await getDiffSnapshot({ worktreePath, baseBranch });
     return evaluateReviewDescent(
       snap.files.map((f) => f.path),
       policies,

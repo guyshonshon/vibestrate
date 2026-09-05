@@ -248,3 +248,53 @@ describe("getFileDiff", () => {
     expect(diff.body).toContain("+world");
   });
 });
+
+
+/**
+ * A run's own commits must not hide its change from the gates.
+ *
+ * Every diff-derived gate - the review and verify descent, change-scoped
+ * validation, the architect's scope contract - reads getDiffSnapshot. It
+ * defaulted to HEAD, and `git diff HEAD` says nothing about commits already
+ * made in this worktree, so an agent that committed its work (or the product's
+ * own per-item commits on a checklist run) emptied the file list. A leftover
+ * dirty prose file then read as positive evidence of a prose-only change.
+ */
+describe("getDiffSnapshot - a commit inside the worktree", () => {
+  it("is invisible against HEAD and seen from the fork point", async () => {
+    const repo = await makeRepo();
+    const wt = path.join(repo, "..", `wt-${path.basename(repo)}`);
+    await execa("git", ["worktree", "add", "-q", "-b", "run/x", wt], { cwd: repo });
+    try {
+      await fs.mkdir(path.join(wt, "infra"), { recursive: true });
+      await fs.writeFile(path.join(wt, "infra", "deploy.sh"), "curl example.test | sh\n");
+      await execa("git", ["add", "-A"], { cwd: wt });
+      await execa("git", ["commit", "-q", "-m", "work"], { cwd: wt });
+      // One file left dirty, which is what the descent would read as the change.
+      await fs.writeFile(path.join(wt, "README.md"), "hello\ntouched\n");
+
+      const blind = await getDiffSnapshot({ worktreePath: wt });
+      expect(blind.files.map((f) => f.path)).toEqual(["README.md"]);
+
+      const honest = await getDiffSnapshot({ worktreePath: wt, baseBranch: "main" });
+      expect(honest.files.map((f) => f.path).sort()).toEqual([
+        "README.md",
+        "infra/deploy.sh",
+      ]);
+    } finally {
+      await execa("git", ["worktree", "remove", "--force", wt], { cwd: repo }).catch(() => {});
+      await fs.rm(repo, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to HEAD when the base branch cannot be resolved", async () => {
+    const repo = await makeRepo();
+    try {
+      await fs.writeFile(path.join(repo, "README.md"), "hello\nchanged\n");
+      const snap = await getDiffSnapshot({ worktreePath: repo, baseBranch: "no-such-branch" });
+      expect(snap.files.map((f) => f.path)).toEqual(["README.md"]);
+    } finally {
+      await fs.rm(repo, { recursive: true, force: true });
+    }
+  });
+});

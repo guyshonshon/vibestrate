@@ -3199,6 +3199,7 @@ export class Orchestrator {
             const descent = await evaluateReviewDescentForWorktree(
               input.worktreePath,
               this.config.policies,
+              this.projectRoot,
             );
             if (descent?.skip) {
               // Only a skipped REVIEW records review evidence. A skipped verify
