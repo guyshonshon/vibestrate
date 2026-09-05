@@ -43,7 +43,14 @@
   same answer, and a public address that merely contains an `ffff` group is
   still reachable.
 
-- **A run's own commits no longer hide its change from the gates.** Every
+- **A run's own commits no longer hide its change from the gates.** (Corrected
+  before release: the first cut of this resolved the fork point against the
+  project root's current branch. A run's worktree is forked from
+  `git.mainBranch`, and nothing keeps your checkout on that branch while a run
+  is going, so on an ordinary feature-branch workflow the gates compared against
+  the wrong line of development and capped merge-readiness over files the run
+  never touched. The base is now the branch the worktree was actually created
+  from.) Every
   diff-derived gate - the review and verify descent, change-scoped validation,
   and the architect's scope contract - asked what changed against `HEAD`. A
   worktree's own commits are invisible to that question, so an agent that

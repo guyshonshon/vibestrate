@@ -287,6 +287,40 @@ describe("getDiffSnapshot - a commit inside the worktree", () => {
     }
   });
 
+  // The base must be the branch the WORKTREE forked from (config.git.mainBranch,
+  // the startPoint it was created with), never the project root's current
+  // branch. Nothing keeps the root on main during a run - requireCleanMain
+  // defaults to false and is enforced nowhere - so on an ordinary feature-branch
+  // workflow the wrong base lands on another line of development and the gates
+  // see files the run never touched, which caps merge-readiness.
+  it("takes the fork point from the run's base branch, not wherever the developer stands", async () => {
+    const repo = await makeRepo();
+    const wt = path.join(repo, "..", `wt-fork-${path.basename(repo)}`);
+    try {
+      await execa("git", ["branch", "feature/ui"], { cwd: repo });
+      // main moves on with a commit this run has nothing to do with.
+      await fs.writeFile(path.join(repo, "unrelated.md"), "elsewhere\n");
+      await execa("git", ["add", "-A"], { cwd: repo });
+      await execa("git", ["commit", "-q", "-m", "on main"], { cwd: repo });
+      // The run's worktree forks from main, which is what the product does.
+      await execa("git", ["worktree", "add", "-q", "-b", "run/x", wt, "main"], { cwd: repo });
+      await fs.writeFile(path.join(wt, "mine.md"), "run work\n");
+      await execa("git", ["add", "-A"], { cwd: wt });
+      await execa("git", ["commit", "-q", "-m", "run work"], { cwd: wt });
+      // The developer is standing somewhere else entirely.
+      await execa("git", ["checkout", "-q", "feature/ui"], { cwd: repo });
+
+      const right = await getDiffSnapshot({ worktreePath: wt, baseBranch: "main" });
+      expect(right.files.map((f) => f.path)).toEqual(["mine.md"]);
+
+      const wrong = await getDiffSnapshot({ worktreePath: wt, baseBranch: "feature/ui" });
+      expect(wrong.files.map((f) => f.path).sort()).toEqual(["mine.md", "unrelated.md"]);
+    } finally {
+      await execa("git", ["worktree", "remove", "--force", wt], { cwd: repo }).catch(() => {});
+      await fs.rm(repo, { recursive: true, force: true });
+    }
+  });
+
   it("falls back to HEAD when the base branch cannot be resolved", async () => {
     const repo = await makeRepo();
     try {

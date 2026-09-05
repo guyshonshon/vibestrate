@@ -11,7 +11,6 @@
 // mean the step RUNS.
 import { getWorktreeDiffText, getDiffSnapshot } from "../diff-service.js";
 import { extractAddedLines } from "../../policies/policy-engine.js";
-import { getCurrentBranch } from "../../git/git.js";
 import {
   diffFactsFromPatch,
   evaluateStepCondition,
@@ -37,6 +36,9 @@ export async function evaluateStepSkip(input: {
   step: { id: string; kind: string; skipWhen?: string | null };
   worktreePath: string | null;
   projectRoot: string;
+  /** The branch the worktree forked from (`config.git.mainBranch`), NOT the
+   *  project root's current branch - see the note in the body. */
+  mainBranch: string;
   readOnly: boolean;
   policies: ProtectedPathsConfig | undefined;
   forcedStepIds?: ReadonlySet<string>;
@@ -63,7 +65,14 @@ export async function evaluateStepSkip(input: {
     // change. The snapshot used to default to HEAD, so an agent that committed
     // its work inside its own worktree emptied the file list and the descent
     // read the leftover dirty file as positive evidence of a prose-only change.
-    const baseBranch = await getCurrentBranch(input.projectRoot);
+    // The worktree is created with `startPoint: config.git.mainBranch`
+    // (orchestrator.ts -> local-worktree-backend.ts), so THAT is the branch it
+    // forked from. Reading the project root's current branch instead was wrong:
+    // nothing keeps the root on main during a run - `git.requireCleanMain`
+    // defaults to false and is enforced nowhere - so on the ordinary
+    // feature-branch workflow the merge-base landed on another line of
+    // development and the gates saw files this run never touched.
+    const baseBranch = input.mainBranch;
     if (step.skipWhen === "inert_diff") {
       const snapshot = await getDiffSnapshot({
         worktreePath: input.worktreePath,

@@ -32,7 +32,6 @@ import { evaluateBlockPolicies } from "../../supervisor/policy-block.js";
 import { evaluateScope, type DeclaredScope } from "../../supervisor/scope-gate.js";
 import { getDiffSnapshot } from "../diff-service.js";
 import { awaitApprovalRequest, type ApprovalGateDeps } from "./approval-gate.js";
-import { getCurrentBranch } from "../../git/git.js";
 import { getWorktreeDiffText } from "../diff-service.js";
 import { draftRunCompleted, type NotificationDraft } from "../../notifications/notification-router.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
@@ -49,6 +48,10 @@ import type { RoleRunResult } from "./types.js";
  *  so live fields (the broker, the notifier) are the ones run() wired. */
 export type FlowVerdictDeps = {
   projectRoot: string;
+  /** `config.git.mainBranch` - the branch every run worktree is forked from, so
+   *  the diff gates below can resolve the run's real fork point. NOT the project
+   *  root's current branch: nothing keeps the root on main during a run. */
+  mainBranch: string;
   readOnly: boolean;
   projectPolicies: ProjectConfig["projectPolicies"];
   taskId: string | null;
@@ -73,6 +76,8 @@ export type FlowVerdictDeps = {
 async function evaluatePolicyBlockGate(input: {
   projectRoot: string;
   worktreePath: string;
+  /** `config.git.mainBranch` - the startPoint the worktree was forked from. */
+  mainBranch: string;
   policies: ProjectConfig["projectPolicies"];
   eventLog: EventLog;
 }): Promise<boolean> {
@@ -81,8 +86,11 @@ async function evaluatePolicyBlockGate(input: {
   );
   if (blockPolicies.length === 0) return true;
   try {
-    // Scan from the fork point so committed-mid-run changes are caught.
-    const baseBranch = await getCurrentBranch(input.projectRoot);
+    // Scan from the fork point so committed-mid-run changes are caught. The
+    // fork point is `config.git.mainBranch`, the startPoint the worktree was
+    // created with - not the project root's current branch, which is wherever
+    // the developer happens to be standing.
+    const baseBranch = input.mainBranch;
     const diffText = await getWorktreeDiffText({
       worktreePath: input.worktreePath,
       baseBranch,
@@ -134,6 +142,8 @@ async function evaluatePolicyBlockGate(input: {
 async function evaluateScopeGate(input: {
   scope: DeclaredScope | null;
   projectRoot: string;
+  /** `config.git.mainBranch` - the startPoint the worktree was forked from. */
+  mainBranch: string;
   worktreePath: string;
   eventLog: EventLog;
 }): Promise<boolean> {
@@ -142,7 +152,7 @@ async function evaluateScopeGate(input: {
     // From the fork point, for the reason the block-policy gate above states:
     // a run that commits mid-run is invisible to a HEAD-based diff, and the
     // architect's contract would then report clean over files it forbade.
-    const baseBranch = await getCurrentBranch(input.projectRoot);
+    const baseBranch = input.mainBranch;
     const snapshot = await getDiffSnapshot({
       worktreePath: input.worktreePath,
       baseBranch,
@@ -275,6 +285,7 @@ export async function finalizeFlowVerdict(
     !deps.readOnly && input.worktreePath
       ? await evaluatePolicyBlockGate({
           projectRoot: deps.projectRoot,
+          mainBranch: deps.mainBranch,
           worktreePath: input.worktreePath,
           policies: deps.projectPolicies,
           eventLog: input.eventLog,
@@ -284,6 +295,7 @@ export async function finalizeFlowVerdict(
     !deps.readOnly && input.worktreePath
       ? await evaluateScopeGate({
           projectRoot: deps.projectRoot,
+          mainBranch: deps.mainBranch,
           scope: input.declaredScope ?? null,
           worktreePath: input.worktreePath,
           eventLog: input.eventLog,

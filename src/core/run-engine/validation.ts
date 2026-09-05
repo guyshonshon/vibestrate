@@ -17,7 +17,6 @@ import {
   type ValidationResults,
 } from "../validation/validation-runner.js";
 import { getDiffSnapshot } from "../diff-service.js";
-import { getCurrentBranch } from "../../git/git.js";
 import { classifyChangedFilesForValidation } from "../validation/validation-scope.js";
 import {
   evaluateReviewDescent,
@@ -126,7 +125,7 @@ export async function runValidation(
     try {
       const snap = await getDiffSnapshot({
         worktreePath: ctx.worktreePath,
-        baseBranch: await getCurrentBranch(deps.projectRoot),
+        baseBranch: deps.config.git.mainBranch,
       });
       // Protected-path floor: a protected path (built-in globs + policies.protectedPaths)
       // is never inert - a workflow .yml or a user-protected .md still
@@ -249,15 +248,17 @@ export async function mergeAcceptanceValidation(
 export async function evaluateReviewDescentForWorktree(
   worktreePath: string | null | undefined,
   policies: ProjectConfig["policies"],
-  /** The branch the worktree forked from. Without it the snapshot reads HEAD,
-   *  which reports nothing about the run's own commits - so a committing agent
-   *  could present a leftover prose file as the whole change and skip review. */
-  projectRoot?: string | null,
+  /** The NAME of the branch the worktree forked from - `config.git.mainBranch`,
+   *  which is the startPoint the worktree was created with. Without it the
+   *  snapshot reads HEAD, which reports nothing about the run's own commits, so
+   *  a committing agent could present a leftover prose file as the whole change
+   *  and skip review. Passing the project root's current branch instead is a
+   *  different bug: that is wherever the developer happens to be standing. */
+  baseBranch?: string | null,
 ): Promise<ReviewDescentDecision | null> {
   if (!worktreePath) return null;
   try {
-    const baseBranch = projectRoot ? await getCurrentBranch(projectRoot) : null;
-    const snap = await getDiffSnapshot({ worktreePath, baseBranch });
+    const snap = await getDiffSnapshot({ worktreePath, baseBranch: baseBranch ?? null });
     return evaluateReviewDescent(
       snap.files.map((f) => f.path),
       policies,

@@ -2249,6 +2249,7 @@ export class Orchestrator {
           step: s,
           worktreePath: input.worktreePath,
           projectRoot: this.projectRoot,
+          mainBranch: this.config.git.mainBranch,
           readOnly: this.readOnly,
           policies: this.config.policies,
           forcedStepIds: this.forcedStepIds,
@@ -3199,7 +3200,7 @@ export class Orchestrator {
             const descent = await evaluateReviewDescentForWorktree(
               input.worktreePath,
               this.config.policies,
-              this.projectRoot,
+              this.config.git.mainBranch,
             );
             if (descent?.skip) {
               // Only a skipped REVIEW records review evidence. A skipped verify
@@ -3801,6 +3802,7 @@ export class Orchestrator {
       const verdict = await finalizeFlowVerdict(
         {
           projectRoot: this.projectRoot,
+          mainBranch: this.config.git.mainBranch,
           readOnly: this.readOnly,
           projectPolicies: this.config.projectPolicies,
           taskId: this.taskId,
