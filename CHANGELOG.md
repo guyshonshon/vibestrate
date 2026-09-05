@@ -38,6 +38,14 @@
   read and stored. Hints now resolve through the same hardened path guard the
   rest of the product uses.
 
+- **A redirect cannot smuggle a fetch to a private address.** The guard on
+  fetching a shared flow, skill or context URL checked the host you gave it and
+  then let the HTTP client follow redirects on its own, so a public host
+  answering `302 Location: http://127.0.0.1/...` reached loopback past a check
+  that had already passed. Redirects are now followed one hop at a time with the
+  same check on each, capped at five. A redirect between public hosts still
+  works.
+
 - **The private-address blocklist no longer depends on how an address is
   spelled.** Fetching a shared flow or skill refuses private and loopback
   destinations, and it recognised an IPv4 address inside an IPv6 literal only in

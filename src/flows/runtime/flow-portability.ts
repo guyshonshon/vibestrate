@@ -21,6 +21,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import dns from "node:dns/promises";
 import net from "node:net";
+import { redirectTargetOf, MAX_GUARDED_REDIRECTS } from "../../core/guarded-fetch.js";
 import YAML from "yaml";
 import { isPathInside, projectFlowsDir } from "../../utils/paths.js";
 import { pathExists, readText } from "../../utils/fs.js";
@@ -555,7 +556,10 @@ export function isBlockedIp(ip: string): boolean {
   return true;
 }
 
-export type FetchImpl = (url: string, init: { signal: AbortSignal }) => Promise<{
+export type FetchImpl = (
+  url: string,
+  init: { signal: AbortSignal; redirect?: "manual" | "follow" },
+) => Promise<{
   ok: boolean;
   status: number;
   headers: { get(name: string): string | null };
@@ -614,12 +618,54 @@ export async function importFlowFromUrl(input: {
   const timer = setTimeout(() => controller.abort(), FLOW_IMPORT_FETCH_TIMEOUT_MS);
   let text: string;
   try {
-    const res = await fetchImpl(parsed.toString(), { signal: controller.signal });
+    // Redirects are followed BY HAND and re-checked at every hop: `fetch`
+    // follows a 3xx on its own, so a public host answering
+    // `302 Location: http://127.0.0.1/...` would walk straight past the host
+    // check above, which has already passed by then.
+    let current = parsed;
+    let res = await fetchImpl(current.toString(), {
+      signal: controller.signal,
+      redirect: "manual",
+    });
+    for (let hop = 0; ; hop++) {
+      const redirect = redirectTargetOf(res, current);
+      if (redirect.kind === "not-a-redirect") break;
+      if (redirect.kind === "no-location") {
+        return { ok: false, status: 400, reasons: [`Redirect (HTTP ${res.status}) carried no Location header.`] };
+      }
+      if (redirect.kind === "unparseable") {
+        return { ok: false, status: 400, reasons: [`Redirect to an unparseable target: ${redirect.raw}`] };
+      }
+      if (hop >= MAX_GUARDED_REDIRECTS) {
+        return { ok: false, status: 400, reasons: [`Too many redirects (limit ${MAX_GUARDED_REDIRECTS}).`] };
+      }
+      const next = redirect.url;
+      if (next.protocol !== "https:" && next.protocol !== "http:") {
+        return { ok: false, status: 400, reasons: [`Redirect to a non-http(s) URL (${next.protocol}).`] };
+      }
+      if (!input.allowPrivateHosts) {
+        const nextHost = next.hostname.replace(/^\[|\]$/g, "");
+        if (await isBlockedFetchHost(nextHost)) {
+          return {
+            ok: false,
+            status: 400,
+            reasons: [
+              `Refusing to follow a redirect to "${nextHost}" - it resolves to a private/loopback address (SSRF guard).`,
+            ],
+          };
+        }
+      }
+      current = next;
+      res = await fetchImpl(current.toString(), {
+        signal: controller.signal,
+        redirect: "manual",
+      });
+    }
     if (!res.ok) {
       return {
         ok: false,
         status: 400,
-        reasons: [`Fetch failed with HTTP ${res.status} for ${parsed.toString()}.`],
+        reasons: [`Fetch failed with HTTP ${res.status} for ${current.toString()}.`],
       };
     }
     const len = res.headers.get("content-length");
