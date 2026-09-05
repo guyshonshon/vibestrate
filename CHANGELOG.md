@@ -2,7 +2,14 @@
 
 ## Unreleased
 
-- **The path guard follows a symlink chain to where it really lands.** It judged
+- **The path guard follows a symlink chain to where it really lands**, at the
+  leaf and through every parent directory. Judging a link by a single step was
+  wrong in both places: a chain that only leaves on its second hop, a target
+  whose parent directory points out of the root, and the relative spelling of
+  that escape were all reported as contained. A link to a file that does not
+  exist yet inside the root still resolves, because that is an honest missing
+  file rather than an escape, and a cycle now ends in a refusal instead of a
+  hang. It judged
   a dangling link by one textual hop: read the target, resolve it against the
   link's own directory, compare. Anything needing a second resolution slipped
   through, and three shapes did - a chain that only leaves on its second hop, a

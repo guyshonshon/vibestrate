@@ -89,6 +89,10 @@ async function pathExistsOnDisk(abs: string): Promise<boolean> {
  * Throws PathGuardError(400) on any violation. Does NOT enforce a 404 - the
  * caller decides whether the absence of a file is "not found" or normal.
  */
+/** Hops shared by the two resolvers below, which call each other: a cycle must
+ *  end the way the OS ends one, with a refusal rather than a hang. */
+type HopBudget = { left: number };
+
 /**
  * The real location a path would occupy, including when it does not exist yet.
  *
@@ -98,12 +102,23 @@ async function pathExistsOnDisk(abs: string): Promise<boolean> {
  * root. So resolve the deepest ancestor that does exist and re-attach the
  * missing tail, rather than trusting the textual path.
  */
-async function realLocationOf(target: string): Promise<string | null> {
+async function realLocationOf(target: string, budget: HopBudget): Promise<string | null> {
   const missingTail: string[] = [];
   let probe = target;
   for (let climb = 0; climb <= 64; climb++) {
     const real = await fs.realpath(probe).catch(() => null);
     if (real) return missingTail.length > 0 ? path.join(real, ...missingTail) : real;
+    // realpath failing does NOT mean "missing". A DANGLING SYMLINK fails it too,
+    // and climbing past one would re-attach the tail to a textual path - the
+    // very mistake the leaf check exists to stop, made one level up. Hand a link
+    // to the chain follower and rebuild the tail on whatever it really resolves
+    // to.
+    const entry = await fs.lstat(probe).catch(() => null);
+    if (entry?.isSymbolicLink()) {
+      const landed = await resolveThroughLinks(probe, budget);
+      if (landed === null) return null;
+      return missingTail.length > 0 ? path.join(landed, ...missingTail) : landed;
+    }
     const parent = path.dirname(probe);
     if (parent === probe) return null;
     missingTail.unshift(path.basename(probe));
@@ -128,18 +143,21 @@ async function realLocationOf(target: string): Promise<string | null> {
  * followed rather than taken at face value. The hop bound is what the OS would
  * enforce with ELOOP: a cycle returns null, which the caller refuses.
  */
-async function resolveThroughLinks(start: string): Promise<string | null> {
+async function resolveThroughLinks(
+  start: string,
+  budget: HopBudget = { left: 32 },
+): Promise<string | null> {
   let current = start;
-  for (let hop = 0; hop <= 32; hop++) {
+  for (;;) {
+    if (budget.left-- <= 0) return null;
     const entry = await fs.lstat(current).catch(() => null);
-    if (!entry?.isSymbolicLink()) return realLocationOf(current);
+    if (!entry?.isSymbolicLink()) return realLocationOf(current, budget);
     const target = await fs.readlink(current).catch(() => null);
     if (target === null) return null;
-    const realDir = await realLocationOf(path.dirname(current));
+    const realDir = await realLocationOf(path.dirname(current), budget);
     if (realDir === null) return null;
     current = path.resolve(realDir, target);
   }
-  return null;
 }
 
 export async function resolveSafePath(
@@ -282,9 +300,11 @@ export async function resolveSafePath(
       // can be written through it today.
       const probeLink = await fs.lstat(probe).catch(() => null);
       if (probeLink?.isSymbolicLink()) {
-        const target = await fs.readlink(probe).catch(() => null);
-        const resolved =
-          target === null ? null : path.resolve(path.dirname(probe), target);
+        // Through the chain follower, not one textual hop. This branch exists
+        // for a DANGLING directory link, which realpath cannot resolve - so the
+        // single-hop version here was the same defect the leaf check had, and
+        // fixing only the leaf left it reachable one level up.
+        const resolved = await resolveThroughLinks(probe);
         if (resolved === null || !isPathInside(realRoot, resolved)) {
           throw new PathGuardError(
             400,

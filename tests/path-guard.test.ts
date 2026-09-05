@@ -170,6 +170,33 @@ describe("resolveSafePath - symlink chains that leave the root", () => {
   // The other half of the guard: tightening it must not turn an honest 404 into
   // a refusal. A link to a file that does not exist YET, inside the root, is a
   // build output or a placeholder and must still resolve.
+  // Fixing the LEAF left the same defect one level up: the ancestor walk judged
+  // a dangling DIRECTORY link by one textual hop too, and the missing-tail
+  // rebuild climbed straight past a dangling link component. Both are chains
+  // that only leave the root on a later hop.
+  it("refuses a dangling directory link that leaves the root on a later hop", async () => {
+    await fs.symlink(path.join(outsideDir, "gone"), path.join(root, "hop2"));
+    await fs.symlink(path.join(root, "hop2"), path.join(root, "dirlink"));
+    await expect(resolveSafePath("dirlink/newfile.md", roots())).rejects.toBeInstanceOf(
+      PathGuardError,
+    );
+  });
+
+  it("refuses a leaf whose chain runs through a dangling directory link", async () => {
+    await fs.symlink(outsideDir, path.join(root, "inner"));
+    await fs.symlink(path.join(root, "inner", "gone"), path.join(root, "dl"));
+    await fs.symlink(path.join(root, "dl", "leaf.md"), path.join(root, "x.md"));
+    await expect(resolveSafePath("x.md", roots())).rejects.toBeInstanceOf(PathGuardError);
+  });
+
+  // The two resolvers call each other, so a cycle has to end in a refusal
+  // rather than a hang - the way the OS ends one.
+  it("refuses a symlink cycle instead of following it forever", async () => {
+    await fs.symlink(path.join(root, "b"), path.join(root, "a"));
+    await fs.symlink(path.join(root, "a"), path.join(root, "b"));
+    await expect(resolveSafePath("a/x.md", roots())).rejects.toBeInstanceOf(PathGuardError);
+  });
+
   it("still allows a dangling symlink that stays inside the root", async () => {
     await fs.mkdir(path.join(root, "generated"), { recursive: true });
     await fs.symlink(path.join(root, "generated", "out.md"), path.join(root, "pending.md"));
