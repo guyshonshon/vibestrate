@@ -184,6 +184,23 @@ describe("server routes", () => {
     expect(res.status).toBe(403);
   });
 
+  // A browser's notion of "site" ignores the port, so any other server on
+  // localhost is same-site with this one. That page must not be able to drive
+  // the API, but it must still be able to link someone to the dashboard.
+  it("refuses a same-site request to the API, which is another local port", async () => {
+    const res = await fetch(`${server!.url}/api/runs`, {
+      headers: { "sec-fetch-site": "same-site" },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("still lets another local page link to the dashboard itself", async () => {
+    const res = await fetch(`${server!.url}/`, {
+      headers: { "sec-fetch-site": "same-site", "sec-fetch-mode": "navigate" },
+    });
+    expect(res.status).not.toBe(403);
+  });
+
   it("allows the dashboard's own GET (Sec-Fetch-Site: same-origin)", async () => {
     const res = await fetch(`${server!.url}/api/runs`, {
       headers: { "sec-fetch-site": "same-origin" },

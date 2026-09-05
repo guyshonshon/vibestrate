@@ -17,6 +17,13 @@
   accident, because the temp root's `/var` spelling never matched its
   `/private/var` real path - the containment check was not what stopped them.
 
+- **Another server on your localhost cannot drive the API either.** A browser
+  decides "same site" without looking at the port, so a page served by any other
+  local dev server counted as same-site with the dashboard and passed the check
+  above. Such a page may not be showing content you control. It can still link
+  you to the dashboard, which is how people open it, but it is now refused on
+  `/api/*`, where the side effects are.
+
 - **A page you visit can no longer make your dashboard do work.** The server
   refused cross-site requests a browser marked `Sec-Fetch-Site: cross-site`, but
   only on state-changing methods. A browser sends no `Origin` header at all for

@@ -291,16 +291,23 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
       }
     }
     const site = req.headers["sec-fetch-site"];
-    // Browser-sent: same-origin / same-site / none are fine; cross-site /
-    // cross-origin are CSRF. Absent (non-browser) is allowed.
-    if (
-      typeof site === "string" &&
-      site !== "same-origin" &&
-      site !== "same-site" &&
-      site !== "none"
-    ) {
-      await reply.code(403).send({ error: "Cross-site requests are not allowed." });
-      return;
+    // Browser-sent: same-origin is the dashboard's own code (every call it makes
+    // is a relative URL, so it is never anything else) and `none` is a person
+    // typing the address. Anything else is another page.
+    //
+    // `same-site` needs saying out loud: a browser's notion of "site" ignores
+    // the PORT, so every other server on localhost is same-site with this one.
+    // A page on some other local dev server is not necessarily content the owner
+    // controls, and it must not be able to drive the API - but it is perfectly
+    // normal for it to LINK here, and a link is how people open the dashboard.
+    // So same-site keeps reaching the UI and its assets, and is refused on
+    // `/api/*`, where the side effects live.
+    if (typeof site === "string" && site !== "same-origin" && site !== "none") {
+      const sameSiteToTheUi = site === "same-site" && !req.url.startsWith("/api/");
+      if (!sameSiteToTheUi) {
+        await reply.code(403).send({ error: "Cross-site requests are not allowed." });
+        return;
+      }
     }
   });
 
