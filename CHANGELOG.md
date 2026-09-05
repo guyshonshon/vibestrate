@@ -17,6 +17,14 @@
   accident, because the temp root's `/var` spelling never matched its
   `/private/var` real path - the containment check was not what stopped them.
 
+- **A checklist item's file hints cannot read outside the worktree.** Hints name
+  files for the next step to read, they are written by a model, and their
+  contents go into a durable run artifact. Containment was a string comparison,
+  which refuses `..` and absolute paths but follows a symlink without noticing,
+  so a hint named `innocent.md` pointing at a key elsewhere on the machine was
+  read and stored. Hints now resolve through the same hardened path guard the
+  rest of the product uses.
+
 - **The private-address blocklist no longer depends on how an address is
   spelled.** Fetching a shared flow or skill refuses private and loopback
   destinations, and it recognised an IPv4 address inside an IPv6 literal only in

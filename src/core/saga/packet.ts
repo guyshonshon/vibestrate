@@ -16,6 +16,7 @@
 import path from "node:path";
 import { readText, pathExists } from "../../utils/fs.js";
 import { isSecretLikePath, redactSecretsInText } from "../diff-service.js";
+import { resolveSafePath } from "../path-guard.js";
 import { renderInvariantsSection } from "./saga-supervisor.js";
 
 /** One step's view, as the packet needs it. Mirrors the saga step fields on a
@@ -179,15 +180,26 @@ export async function readFreshFileReads(input: {
     const rel = hint.trim();
     if (!rel) continue;
     const normalized = rel.replace(/\\/g, "/");
-    // Refuse anything that could escape the approved root.
-    if (normalized.startsWith("/") || normalized.includes("..")) continue;
-    if (path.isAbsolute(normalized)) continue;
     if (isSecretLikePath(normalized)) continue;
 
-    const resolved = path.resolve(worktreePath, normalized);
-    const insideWorktree =
-      resolved === worktreePath || resolved.startsWith(worktreePath + path.sep);
-    if (!insideWorktree) continue;
+    // Containment goes through the project's hardened resolver rather than a
+    // string prefix test. The textual version refused "..", an absolute path
+    // and anything resolving outside the worktree - and still handed over a
+    // file outside it, because none of those checks follow a symlink. A hint
+    // named `innocent.md` pointing at `~/.ssh/id_rsa` passed every one of them,
+    // and `isSecretLikePath` judges the NAME the model supplied, not the target
+    // it lands on. These hints are model-written and the content goes into a
+    // durable run artifact, so this is the one place that must not improvise.
+    let resolved: string;
+    try {
+      const safe = await resolveSafePath(normalized, [
+        { kind: "worktree", absolutePath: worktreePath, label: "run worktree" },
+      ]);
+      if (safe.isSecretLike) continue;
+      resolved = safe.absolutePath;
+    } catch {
+      continue;
+    }
 
     if (!(await pathExists(resolved))) continue;
     const content = await readText(resolved).catch(() => null);

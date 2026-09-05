@@ -184,3 +184,51 @@ describe("readFreshFileReads", () => {
     expect(reads).toEqual([]);
   });
 });
+
+
+/**
+ * File hints are written by a model and their content lands in a durable run
+ * artifact the dashboard serves, so containment here has to be real. The check
+ * used to be textual: refuse "..", refuse an absolute path, then compare string
+ * prefixes. None of that follows a symlink, so a hint named `innocent.md`
+ * pointing at a key outside the worktree passed every rule - and
+ * `isSecretLikePath` does not catch it either, because it judges the name the
+ * model supplied rather than the file it lands on.
+ */
+describe("readFreshFileReads - containment", () => {
+  it("refuses a hint that is a symlink pointing out of the worktree", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-hints-")));
+    try {
+      const wt = path.join(base, "wt");
+      const outside = path.join(base, "outside");
+      await fs.mkdir(wt, { recursive: true });
+      await fs.mkdir(outside, { recursive: true });
+      await fs.writeFile(path.join(outside, "id_rsa"), "CANARY-SECRET\n");
+      await fs.writeFile(path.join(wt, "ok.md"), "legit\n");
+      await fs.symlink(path.join(outside, "id_rsa"), path.join(wt, "innocent.md"));
+
+      const reads = await readFreshFileReads({
+        worktreePath: wt,
+        fileHints: ["ok.md", "innocent.md", "../outside/id_rsa"],
+      });
+
+      expect(reads.map((r) => r.path)).toEqual(["ok.md"]);
+      expect(JSON.stringify(reads)).not.toContain("CANARY-SECRET");
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
+  it("still reads an ordinary file inside the worktree", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-hints-ok-")));
+    try {
+      await fs.mkdir(path.join(base, "sub"), { recursive: true });
+      await fs.writeFile(path.join(base, "sub", "notes.md"), "hello\n");
+      const reads = await readFreshFileReads({ worktreePath: base, fileHints: ["sub/notes.md"] });
+      expect(reads).toHaveLength(1);
+      expect(reads[0]!.content).toContain("hello");
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+});
