@@ -153,6 +153,7 @@ describe("readFreshFileReads", () => {
 
     const reads = await readFreshFileReads({
       worktreePath: dir,
+      projectRoot: dir,
       fileHints: [rel],
     });
     expect(reads).toHaveLength(1);
@@ -164,6 +165,7 @@ describe("readFreshFileReads", () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-packet-read2-"));
     const reads = await readFreshFileReads({
       worktreePath: dir,
+      projectRoot: dir,
       fileHints: ["does/not/exist.ts", "../escape.ts", "/etc/passwd"],
     });
     expect(reads).toEqual([]);
@@ -171,7 +173,7 @@ describe("readFreshFileReads", () => {
 
   it("returns [] for empty fileHints", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-packet-read3-"));
-    expect(await readFreshFileReads({ worktreePath: dir, fileHints: [] })).toEqual([]);
+    expect(await readFreshFileReads({ worktreePath: dir, projectRoot: dir, fileHints: [] })).toEqual([]);
   });
 
   it("does not read secret-like paths (e.g. .env) even when hinted", async () => {
@@ -179,6 +181,7 @@ describe("readFreshFileReads", () => {
     await fs.writeFile(path.join(dir, ".env"), "SECRET=hunter2");
     const reads = await readFreshFileReads({
       worktreePath: dir,
+      projectRoot: dir,
       fileHints: [".env"],
     });
     expect(reads).toEqual([]);
@@ -209,10 +212,46 @@ describe("readFreshFileReads - containment", () => {
 
       const reads = await readFreshFileReads({
         worktreePath: wt,
+        projectRoot: wt,
         fileHints: ["ok.md", "innocent.md", "../outside/id_rsa"],
       });
 
       expect(reads.map((r) => r.path)).toEqual(["ok.md"]);
+      expect(JSON.stringify(reads)).not.toContain("CANARY-SECRET");
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
+  // A run worktree is a SIBLING of the project (git.worktreeDir defaults to
+  // ../.vibestrate-worktrees) and its env dirs are symlinks back into the
+  // project - node_modules and .venv, linked by default. Judging a hint against
+  // the worktree alone refuses every read through one of those, which is a
+  // legitimate thing for a hint to name and was silently dropped.
+  it("reads through a linked environment directory, which points into the project", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-linkenv-")));
+    try {
+      const proj = path.join(base, "proj");
+      const wt = path.join(base, ".vibestrate-worktrees", "run-1");
+      const elsewhere = path.join(base, "elsewhere");
+      await fs.mkdir(path.join(proj, "node_modules", "pkg"), { recursive: true });
+      await fs.mkdir(wt, { recursive: true });
+      await fs.mkdir(elsewhere, { recursive: true });
+      await fs.writeFile(path.join(proj, "node_modules", "pkg", "index.d.ts"), "declare const x: 1;\n");
+      await fs.writeFile(path.join(elsewhere, "id_rsa"), "CANARY-SECRET\n");
+      await fs.writeFile(path.join(wt, "app.ts"), "ok\n");
+      // What linkWorktreeEnvironment does, on by default.
+      await fs.symlink(path.join(proj, "node_modules"), path.join(wt, "node_modules"));
+      // And the escape that must still be refused.
+      await fs.symlink(path.join(elsewhere, "id_rsa"), path.join(wt, "innocent.md"));
+
+      const reads = await readFreshFileReads({
+        worktreePath: wt,
+        projectRoot: proj,
+        fileHints: ["app.ts", "node_modules/pkg/index.d.ts", "innocent.md"],
+      });
+
+      expect(reads.map((r) => r.path).sort()).toEqual(["app.ts", "node_modules/pkg/index.d.ts"]);
       expect(JSON.stringify(reads)).not.toContain("CANARY-SECRET");
     } finally {
       await fs.rm(base, { recursive: true, force: true });
@@ -224,7 +263,7 @@ describe("readFreshFileReads - containment", () => {
     try {
       await fs.mkdir(path.join(base, "sub"), { recursive: true });
       await fs.writeFile(path.join(base, "sub", "notes.md"), "hello\n");
-      const reads = await readFreshFileReads({ worktreePath: base, fileHints: ["sub/notes.md"] });
+      const reads = await readFreshFileReads({ worktreePath: base, projectRoot: base, fileHints: ["sub/notes.md"] });
       expect(reads).toHaveLength(1);
       expect(reads[0]!.content).toContain("hello");
     } finally {

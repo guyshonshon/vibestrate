@@ -187,6 +187,7 @@ export function createChecklistBand(deps: ChecklistBandDeps): ChecklistBand {
       const fileReads = deps.worktreePath
         ? await readFreshFileReads({
             worktreePath: deps.worktreePath,
+            projectRoot: deps.projectRoot,
             fileHints: item.fileHints,
           }).catch(() => [])
         : [];

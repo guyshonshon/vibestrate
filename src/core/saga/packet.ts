@@ -16,7 +16,7 @@
 import path from "node:path";
 import { readText, pathExists } from "../../utils/fs.js";
 import { isSecretLikePath, redactSecretsInText } from "../diff-service.js";
-import { resolveSafePath } from "../path-guard.js";
+import { resolveSafePath, buildProjectRoots } from "../path-guard.js";
 import { renderInvariantsSection } from "./saga-supervisor.js";
 
 /** One step's view, as the packet needs it. Mirrors the saga step fields on a
@@ -172,9 +172,20 @@ export function buildStepPacket(args: BuildStepPacketArgs): string {
  */
 export async function readFreshFileReads(input: {
   worktreePath: string;
+  /** The project root. Required for containment, because a run worktree is a
+   *  SIBLING of the project (`git.worktreeDir` defaults to
+   *  `../.vibestrate-worktrees`) and its env dirs are SYMLINKS back into the
+   *  project - `node_modules` and `.venv`, linked by default. Judging a hint
+   *  against the worktree alone therefore refuses every read through one of
+   *  those links, which is a legitimate and common thing for a hint to name. */
+  projectRoot: string;
   fileHints: string[];
 }): Promise<StepPacketFileRead[]> {
-  const { worktreePath, fileHints } = input;
+  const { worktreePath, projectRoot, fileHints } = input;
+  // Worktree first: a file that exists in both is the run's copy, not the
+  // project's. `resolveSafePath` still proves real containment inside whichever
+  // root matches, so a link out of BOTH roots stays refused.
+  const roots = buildProjectRoots({ projectRoot, worktreePath, worktreeFirst: true });
   const out: StepPacketFileRead[] = [];
   for (const hint of fileHints) {
     const rel = hint.trim();
@@ -190,16 +201,24 @@ export async function readFreshFileReads(input: {
     // and `isSecretLikePath` judges the NAME the model supplied, not the target
     // it lands on. These hints are model-written and the content goes into a
     // durable run artifact, so this is the one place that must not improvise.
-    let resolved: string;
-    try {
-      const safe = await resolveSafePath(normalized, [
-        { kind: "worktree", absolutePath: worktreePath, label: "run worktree" },
-      ]);
-      if (safe.isSecretLike) continue;
-      resolved = safe.absolutePath;
-    } catch {
-      continue;
+    // Each approved root is tried on its own, because containment is proved
+    // against the root the path resolved in - so a hint reaching the project
+    // through a worktree env link fails against the worktree and succeeds
+    // against the project, which is the correct answer and cannot be reached by
+    // handing both roots to one call.
+    let resolved: string | null = null;
+    for (const root of roots) {
+      try {
+        const safe = await resolveSafePath(normalized, [root]);
+        if (safe.isSecretLike) break;
+        resolved = safe.absolutePath;
+        break;
+      } catch {
+        // Not contained by THIS root; the next one may still approve it, and if
+        // none does the hint is dropped.
+      }
     }
+    if (resolved === null) continue;
 
     if (!(await pathExists(resolved))) continue;
     const content = await readText(resolved).catch(() => null);

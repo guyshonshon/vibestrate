@@ -25,7 +25,12 @@
   way to tell was that it never stopped. The signal is now carried forward the
   same way abort is, in one direction only, so resuming still works.
 
-- **A checklist item's file hints cannot read outside the worktree.** Hints name
+- **A checklist item's file hints cannot read outside the worktree.** (Corrected
+  before release: the first cut judged a hint against the worktree alone. A run
+  worktree is a sibling of your project and its `node_modules` and `.venv` are
+  symlinks back into it, so every hint naming a file under one of those was
+  silently dropped. Hints are now approved against the project as well as the
+  worktree, and a link out of both is still refused.) Hints name
   files for the next step to read, they are written by a model, and their
   contents go into a durable run artifact. Containment was a string comparison,
   which refuses `..` and absolute paths but follows a symlink without noticing,

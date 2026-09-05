@@ -330,6 +330,7 @@ export async function runSagaEnhanceTurn(
     if (hints.length > 0) {
       const reads = await readFreshFileReads({
         worktreePath: input.worktreePath,
+        projectRoot: deps.projectRoot,
         fileHints: hints,
       }).catch(() => []);
       freshRead = reads
