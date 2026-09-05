@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.4.2
+
+- **A symlink target that climbs out with `..` is refused.** 0.4.1 hardened the
+  path guard but judged a link's target with a lexical resolve, which collapses
+  `..` textually. The kernel does not: a `..` after a symlink climbs from where
+  that link landed. A link to `dl/../x`, with `dl` pointing out of your project,
+  read as inside the project to the guard and outside it to the operating
+  system, and a write through the approved path landed outside. Targets are now
+  walked one component at a time, the way the kernel walks them.
+
+- **The supervised path reads the same diff as every other gate.** 0.4.1 pointed
+  the merge gates at the branch a run's worktree forked from and missed three
+  places in the supervised path, so the step packet and both supervisor prompts
+  were shown your unrelated commits as if the run had made them. One of those
+  prompts can halt a run.
+
+- **A file hint stays inside the run.** Allowing the project as a second
+  location, so hints could follow the linked `node_modules`, also let an
+  absolute hint reach anything under the project, including another run's
+  artifacts. Hints are relative by contract and are now held to it, and a
+  location only answers a hint when it actually holds the file.
+
+- **A credential never chases a redirect.** The model probe, the telemetry
+  exporter and the chat-completions call all pointed at user-configurable
+  endpoints and let the HTTP client follow a redirect, which would re-send the
+  request, API key attached, to a host nothing had checked. All three refuse.
+
+- **A finished run does not stay pausing.** A pause that arrived as a run ended
+  was kept forever, because nothing sheds it once no orchestrator can honour it,
+  and the terminal shows a completed run as still pausing.
+
 ## 0.4.1
 
 - **The path guard follows a symlink chain to where it really lands**, at the

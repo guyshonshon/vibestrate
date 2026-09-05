@@ -700,7 +700,17 @@ export class RunStateStore {
     // written straight back and the run pauses again, having been resumed. Both
     // are the same mistake - a whole-object write deciding a field that belongs
     // to whoever raised or cleared it - so neither direction belongs here.
-    out = { ...out, pauseRequested: onDisk.state.pauseRequested };
+    // A terminal write sheds it. Past this point no orchestrator can honour a
+    // pause, and a run that ends with one pending keeps a flag nothing will
+    // ever clear - the same orphan applyPauseIfRequested already clears
+    // mid-run, which the CLI then reports as a run still pausing. `mutate`
+    // stays the only writer while the run is live.
+    out = {
+      ...out,
+      pauseRequested: isTerminal(out.status as RunStatus)
+        ? false
+        : onDisk.state.pauseRequested,
+    };
     // `pendingGuidance` belongs to whoever queued it, not to the caller's
     // in-memory snapshot. A whole-object write built before a note arrived
     // would drop it; one built before a DRAIN would resurrect it. Deferring to

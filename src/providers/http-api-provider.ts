@@ -29,6 +29,7 @@ export type FetchLike = (
     headers: Record<string, string>;
     body: string;
     signal?: AbortSignal;
+    redirect?: "manual" | "follow";
   },
 ) => Promise<{ ok: boolean; status: number; statusText: string; text(): Promise<string> }>;
 
@@ -194,10 +195,21 @@ export async function runHttpApiProvider(
 
   let res: Awaited<ReturnType<FetchLike>>;
   try {
-    res = await doFetch(url, { method: "POST", headers, body, signal });
+    // Never follow a redirect with the API key attached. The base URL is
+    // user-configurable, so a 3xx would re-issue this request - key and prompt
+    // included - to a host nothing validated. A chat-completions endpoint has
+    // no legitimate reason to redirect.
+    res = await doFetch(url, { method: "POST", headers, body, signal, redirect: "manual" });
   } catch (err) {
     throw new ProviderError(
       `HTTP provider request failed: ${redact(err, [apiKey])}`,
+    );
+  }
+  // Opaque redirect (status 0) on a real fetch, the raw 3xx through an injected
+  // one; both mean the endpoint tried to send this elsewhere.
+  if (res.status === 0 || (res.status >= 300 && res.status < 400)) {
+    throw new ProviderError(
+      `HTTP provider endpoint answered with a redirect; refusing to follow it with the API key attached.`,
     );
   }
   const text = await res.text();

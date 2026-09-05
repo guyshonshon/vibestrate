@@ -30,7 +30,12 @@ export type ProbeResult =
 
 export type ProbeFetch = (
   url: string,
-  init: { method: string; headers: Record<string, string>; signal?: AbortSignal },
+  init: {
+    method: string;
+    headers: Record<string, string>;
+    signal?: AbortSignal;
+    redirect?: "manual" | "follow";
+  },
 ) => Promise<{ ok: boolean; status: number; text: () => Promise<string> }>;
 
 const TIMEOUT_MS = 15_000;
@@ -132,9 +137,27 @@ export async function probeModels(input: {
   const doFetch = input.fetchImpl ?? (globalThis.fetch as unknown as ProbeFetch);
   let res: Awaited<ReturnType<ProbeFetch>>;
   try {
-    res = await doFetch(url, { method: "GET", headers, signal: AbortSignal.timeout(TIMEOUT_MS) });
+    // Never follow a redirect with the credential attached. These endpoints are
+    // user-configurable, so a 3xx would re-issue the request - key included - to
+    // a host nothing validated. None of them has a legitimate reason to
+    // redirect, so refuse rather than re-check.
+    res = await doFetch(url, {
+      method: "GET",
+      headers,
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      redirect: "manual",
+    });
   } catch (err) {
     return { ok: false, code: "unreachable", reason: redact(err, [key]) };
+  }
+  // `redirect: "manual"` gives an opaque redirect (status 0) on a real fetch and
+  // the raw 3xx through an injected one. Both mean the same thing here.
+  if (res.status === 0 || (res.status >= 300 && res.status < 400)) {
+    return {
+      ok: false,
+      code: "http",
+      reason: `${url} answered with a redirect; refusing to follow it with the API key attached.`,
+    };
   }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
