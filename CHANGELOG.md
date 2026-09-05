@@ -17,6 +17,16 @@
   accident, because the temp root's `/var` spelling never matched its
   `/private/var` real path - the containment check was not what stopped them.
 
+- **The private-address blocklist no longer depends on how an address is
+  spelled.** Fetching a shared flow or skill refuses private and loopback
+  destinations, and it recognised an IPv4 address inside an IPv6 literal only in
+  its dotted form. `::ffff:169.254.169.254` was blocked; `::ffff:a9fe:a9fe`, the
+  same address written in hex and the usual cloud metadata endpoint, was not.
+  Nor were the hex spellings of loopback or any private range. The address is
+  now expanded before it is judged, so every spelling of the same host gets the
+  same answer, and a public address that merely contains an `ffff` group is
+  still reachable.
+
 - **A run's own commits no longer hide its change from the gates.** Every
   diff-derived gate - the review and verify descent, change-scoped validation,
   and the architect's scope contract - asked what changed against `HEAD`. A

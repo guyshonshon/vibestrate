@@ -468,6 +468,47 @@ export async function importFlowFromFile(input: {
  *  loopback, private, link-local, and unspecified ranges. Best-effort SSRF
  *  guard - the user-initiated CLI path trusts the user, but the HTTP API must
  *  not be turned into a probe for internal services. */
+/**
+ * The eight 16-bit groups of an IPv6 literal, or null if it is not one.
+ *
+ * Written out rather than pattern-matched because the blocklist above has to be
+ * spelling-independent: `::ffff:127.0.0.1`, `::ffff:7f00:1` and
+ * `0:0:0:0:0:ffff:7f00:1` are the same address, and a check that recognises
+ * only the first of them is not a check.
+ */
+function expandIpv6(lower: string): number[] | null {
+  let text = lower.split("%")[0] ?? "";
+  // A dotted IPv4 tail is the low 32 bits; fold it into two hex groups so the
+  // rest of this function only ever deals with one notation.
+  const dotted = /^(.*:)(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(text);
+  if (dotted) {
+    const quad = [dotted[2], dotted[3], dotted[4], dotted[5]].map((q) => Number(q));
+    if (quad.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return null;
+    const hi = ((quad[0]! << 8) | quad[1]!).toString(16);
+    const lo = ((quad[2]! << 8) | quad[3]!).toString(16);
+    text = `${dotted[1]}${hi}:${lo}`;
+  }
+  const halves = text.split("::");
+  if (halves.length > 2) return null;
+  const head = halves[0] ? halves[0].split(":").filter((x) => x !== "") : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(":").filter((x) => x !== "") : [];
+  let parts: string[];
+  if (halves.length === 2) {
+    const fill = 8 - head.length - tail.length;
+    if (fill < 0) return null;
+    parts = [...head, ...new Array<string>(fill).fill("0"), ...tail];
+  } else {
+    parts = head;
+  }
+  if (parts.length !== 8) return null;
+  const out: number[] = [];
+  for (const part of parts) {
+    if (!/^[0-9a-f]{1,4}$/.test(part)) return null;
+    out.push(parseInt(part, 16));
+  }
+  return out;
+}
+
 export function isBlockedIp(ip: string): boolean {
   const v = net.isIP(ip);
   if (v === 4) {
@@ -489,9 +530,25 @@ export function isBlockedIp(ip: string): boolean {
     if (lower === "::" || lower === "::1") return true;
     if (lower.startsWith("fe80")) return true; // link-local
     if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // ULA fc00::/7
-    // IPv4-mapped (::ffff:a.b.c.d) → recheck the embedded v4.
-    const mapped = /::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(lower);
-    if (mapped) return isBlockedIp(mapped[1]!);
+    // An IPv4 address embedded in a v6 literal is judged as the v4 address it
+    // is, in EVERY spelling. This used to match only the dotted tail
+    // (`::ffff:169.254.169.254`), so the identical address written in hex
+    // (`::ffff:a9fe:a9fe`) walked straight through - and that particular one is
+    // the cloud metadata endpoint. Expanding the address first means the check
+    // does not depend on how the attacker chose to write it.
+    const groups = expandIpv6(lower);
+    if (groups) {
+      const high = groups.slice(0, 5).every((g) => g === 0);
+      const embedded = groups[5] === 0xffff || (groups[5] === 0 && high);
+      if (high && embedded) {
+        const hi = groups[6]!;
+        const lo = groups[7]!;
+        // `::` and `::1` are already returned above, so a zero tail here is a
+        // reserved form rather than a real v4 host; refuse it either way.
+        if (hi === 0 && lo <= 1) return true;
+        return isBlockedIp(`${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`);
+      }
+    }
     return false;
   }
   // Not an IP literal → caller resolves via DNS first.

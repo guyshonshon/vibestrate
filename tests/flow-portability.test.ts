@@ -326,3 +326,39 @@ describe("isBlockedIp", () => {
     expect(isBlockedIp("2606:4700:4700::1111")).toBe(false);
   });
 });
+
+
+/**
+ * The blocklist has to be spelling-independent.
+ *
+ * `::ffff:169.254.169.254` and `::ffff:a9fe:a9fe` are the same address - the
+ * cloud metadata endpoint - and the guard used to recognise only the dotted
+ * one, so the hex spelling of every private range reached the fetcher.
+ */
+describe("isBlockedIp - IPv4 embedded in an IPv6 literal", () => {
+  it("blocks the hex spelling of a mapped address, not just the dotted one", () => {
+    for (const ip of [
+      "::ffff:169.254.169.254",
+      "::ffff:a9fe:a9fe",
+      "::ffff:127.0.0.1",
+      "::ffff:7f00:1",
+      "0:0:0:0:0:ffff:7f00:1",
+      "::FFFF:7F00:1",
+      "::ffff:c0a8:1",
+      "::ffff:0a00:0005",
+    ]) {
+      expect(isBlockedIp(ip), ip).toBe(true);
+    }
+  });
+
+  it("does not block a public address that merely contains an ffff group", () => {
+    for (const ip of [
+      "2001:db8::ffff:1:2",
+      "2001:4860:4860::8888",
+      "2606:4700:4700::1111",
+      "93.184.216.34",
+    ]) {
+      expect(isBlockedIp(ip), ip).toBe(false);
+    }
+  });
+});
