@@ -235,6 +235,17 @@ describe("resolveSafePath - symlink chains that leave the root", () => {
     expect(resolved.absolutePath).toContain("new.ts");
   });
 
+  // A backslash is legal in a POSIX filename, and a link target is a string from
+  // the kernel. Splitting on it walked "<root>/evil" - inside - while the OS
+  // followed "<root>/\\evil", a link out of the root. The guard approved it and
+  // a write through the approved path landed outside.
+  it("refuses a link target that is a filename containing a backslash", async () => {
+    await fs.symlink(path.join(outsideDir, "planted.md"), path.join(root, "\\evil"));
+    await fs.symlink("\\evil", path.join(root, "VIBESTRATE.md"));
+    await expect(resolveSafePath("VIBESTRATE.md", roots())).rejects.toBeInstanceOf(PathGuardError);
+    await expect(fs.stat(path.join(outsideDir, "planted.md"))).rejects.toThrow();
+  });
+
   it("still allows a .. that stays inside the root", async () => {
     await fs.mkdir(path.join(root, "a", "b"), { recursive: true });
     await fs.writeFile(path.join(root, "a", "target.md"), "hi\n");
@@ -269,7 +280,7 @@ describe("resolveSafePath - symlink chains that leave the root", () => {
  * Windows workflow its own header calls "NOT a required gate" - the leg that
  * was red through a release. A table under path.win32 runs everywhere.
  */
-describe("linkWalkStart - the root is carried, never re-walked", () => {
+describe("linkWalkStart - the whole flavour-dependent walk, one seam", () => {
   const win = path.win32;
 
   it("never re-appends a Windows root as a segment", () => {
@@ -281,29 +292,34 @@ describe("linkWalkStart - the root is carried, never re-walked", () => {
       "\\\\server\\share\\x",
       "\\\\?\\UNC\\server\\share\\x",
     ]) {
-      const { startAt, body } = linkWalkStart(target, "C:\\somewhere", win);
+      const { startAt, segments } = linkWalkStart(target, "C:\\somewhere", win);
       let walked = startAt;
-      for (const segment of body.split(/[\\/]+/)) {
-        if (segment === "" || segment === ".") continue;
-        walked = win.join(walked, segment);
-      }
+      for (const segment of segments) walked = win.join(walked, segment);
       expect(walked, target).toBe(win.resolve(target));
     }
   });
 
-  it("leaves a relative target and its starting point alone", () => {
-    const { startAt, body } = linkWalkStart("packages/pkg", "C:\\proj", win);
-    expect(startAt).toBe("C:\\proj");
-    expect(body).toBe("packages/pkg");
+  // A backslash is a LEGAL character in a POSIX filename, and this string is a
+  // link target read back from the kernel. Splitting on it there walked a
+  // different path than the OS resolves, and the guard approved a write that
+  // landed outside the root. Windows really does have both separators and
+  // cannot have one in a filename, so only POSIX narrows.
+  it("treats a backslash as a filename character on posix and a separator on windows", () => {
+    expect(linkWalkStart("\\evil", "/root", path.posix).segments).toEqual(["\\evil"]);
+    expect(linkWalkStart("a\\..\\..\\outside", "/root", path.posix).segments).toEqual([
+      "a\\..\\..\\outside",
+    ]);
+    expect(linkWalkStart("a\\b", "C:\\root", win).segments).toEqual(["a", "b"]);
   });
 
-  it("is a no-op on posix, which is why the Windows break was invisible here", () => {
-    for (const target of ["/a/b", "/", "//a/b", "/a/../b", "a/b"]) {
-      const { startAt, body } = linkWalkStart(target, "/root", path.posix);
-      const expected = path.posix.isAbsolute(target)
-        ? { startAt: "/", body: target.slice(1) }
-        : { startAt: "/root", body: target };
-      expect({ startAt, body }, target).toEqual(expected);
-    }
+  it("drops empty and dot segments, and leaves a relative target's start alone", () => {
+    const r = linkWalkStart("./packages//pkg/", "/root", path.posix);
+    expect(r.startAt).toBe("/root");
+    expect(r.segments).toEqual(["packages", "pkg"]);
+  });
+
+  it("is a no-op on posix roots, which is why the Windows break was invisible here", () => {
+    expect(linkWalkStart("/a/b", "/root", path.posix)).toEqual({ startAt: "/", segments: ["a", "b"] });
+    expect(linkWalkStart("a/b", "/root", path.posix)).toEqual({ startAt: "/root", segments: ["a", "b"] });
   });
 });

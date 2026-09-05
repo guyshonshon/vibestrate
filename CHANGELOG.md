@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **A backslash in a filename is a filename, not a path separator.** On macOS
+  and Linux a backslash is a perfectly legal character in a file name, and the
+  path guard was splitting symlink targets on it. A link pointing at a file
+  literally named with one resolved, to the guard, somewhere inside your
+  project, while the operating system followed it out. The guard approved the
+  path and a write through it landed outside. Only reachable if something has
+  already planted two entries in your project, but the guard's whole job is to
+  hold when that has happened.
+
 ## 0.4.3
 
 - **A file hint is judged by where it lands, not how it is spelled.** 0.4.2 said

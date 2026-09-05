@@ -144,12 +144,26 @@ async function realLocationOf(target: string, budget: HopBudget): Promise<string
 export function linkWalkStart(
   target: string,
   relativeTo: string,
-  flavour: Pick<typeof path, "isAbsolute" | "parse" | "resolve"> = path,
-): { startAt: string; body: string } {
+  flavour: Pick<typeof path, "isAbsolute" | "parse" | "resolve" | "sep"> = path,
+): { startAt: string; segments: string[] } {
   const absolute = flavour.isAbsolute(target);
+  const body = absolute ? target.slice(flavour.parse(target).root.length) : target;
+  // Split on the separators THIS platform has, not on both. A backslash is a
+  // legal character in a POSIX filename, and this string is a link target read
+  // back from the kernel - so splitting on it there walks a different path than
+  // the OS resolves. A link storing the literal name "\\evil" walked to
+  // "<root>/evil", which is inside, while the kernel followed "<root>/\\evil",
+  // a symlink out of the root: the guard approved it and a write through the
+  // approved path landed outside. Windows genuinely has both separators and a
+  // backslash cannot appear in a filename there, so only POSIX narrows.
+  const separators = flavour.sep === "\\" ? /[\\/]+/ : /\/+/;
   return {
     startAt: absolute ? flavour.parse(flavour.resolve(target)).root : relativeTo,
-    body: absolute ? target.slice(flavour.parse(target).root.length) : target,
+    // The split lives HERE, behind the same seam as the root arithmetic, so the
+    // whole flavour-dependent walk can be driven by one test under both
+    // flavours. It sitting outside is why the Windows table could not have
+    // caught this.
+    segments: body.split(separators).filter((seg) => seg !== "" && seg !== "."),
   };
 }
 
@@ -190,11 +204,11 @@ async function resolveThroughLinks(
     // guard approved it, and a write through the approved path landed outside
     // the root. That is the same one-textual-hop mistake this function was
     // written to remove, hiding in the `..` handling.
-    // See linkWalkStart: the root is carried by `startAt`, never re-walked.
-    const { startAt, body } = linkWalkStart(target, realDir);
+    // See linkWalkStart: the root is carried by `startAt`, never re-walked, and
+    // the target is split on this platform's separators only.
+    const { startAt, segments } = linkWalkStart(target, realDir);
     let walked = startAt;
-    for (const segment of body.split(/[\\/]+/)) {
-      if (segment === "" || segment === ".") continue;
+    for (const segment of segments) {
       if (segment === "..") {
         // Up from where the path so far REALLY lands, which is what the kernel
         // does and the only reason this walk exists.
