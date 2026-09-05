@@ -247,20 +247,33 @@ describe("pauseRequested survives a whole-object write", () => {
     expect((await store.read()).pauseRequested).toBe(true);
   });
 
-  it("can still be lowered, so a resumed run does not re-pause itself", async () => {
+  // The mirror image, and the reason deference has to run in BOTH directions.
+  // The orchestrator is holding a copy taken WHILE the run was paused, so it
+  // carries pauseRequested true. The human resumes. That stale copy must not
+  // put the pause back - a run that was resumed and then pauses itself again is
+  // the same bug wearing the other face.
+  it("does not undo a resume with a stale copy taken while paused", async () => {
     await requestPause(store, events);
-    expect((await store.read()).pauseRequested).toBe(true);
+    const heldWhilePaused = await store.read();
+    expect(heldWhilePaused.pauseRequested).toBe(true);
 
-    // Lowering goes through mutate, which is what requestResume uses.
+    await requestResume(store, events);
+    expect((await store.read()).pauseRequested).toBe(false);
+
+    await store.write(heldWhilePaused);
+    expect((await store.read()).pauseRequested).toBe(false);
+  });
+
+  // `write` must not be able to move this field at all, in either direction,
+  // which is what leaves `mutate` as its only writer.
+  it("lowers only through mutate, never through a whole-object write", async () => {
+    await requestPause(store, events);
     await store.mutate((fresh) => ({
       next: { ...fresh, pauseRequested: false },
       result: null,
     }));
     expect((await store.read()).pauseRequested).toBe(false);
-
-    // And a later whole-object write must not resurrect it.
-    const afterResume = await store.read();
-    await store.write(afterResume);
+    await store.write(await store.read());
     expect((await store.read()).pauseRequested).toBe(false);
   });
 });

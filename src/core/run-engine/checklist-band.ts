@@ -358,8 +358,14 @@ export function createChecklistBand(deps: ChecklistBandDeps): ChecklistBand {
 
   const stepModeGate = async (nextIndex: number): Promise<void> => {
     if (deps.checklistMode !== "step") return;
-    deps.setState({ ...deps.getState(), pauseRequested: true });
-    await deps.stateStore.write(deps.getState());
+    // Through `mutate`: `write` defers to the on-disk value for this flag
+    // (see keepExternalSignals), so a whole-object write cannot raise it and
+    // step-by-step mode would never actually stop.
+    const gated = await deps.stateStore.mutate((fresh) => {
+      const raised: RunState = { ...fresh, pauseRequested: true };
+      return { next: raised, result: raised };
+    });
+    deps.setState(gated);
     await deps.eventLog.append({
       type: "checklist.item.gate",
       message: `Step-by-step: paused before item ${nextIndex + 1}/${deps.items().length}.`,

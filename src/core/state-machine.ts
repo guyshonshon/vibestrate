@@ -689,16 +689,18 @@ export class RunStateStore {
     if (!out.abortRequested && onDisk.state.abortRequested === true) {
       out = { ...out, abortRequested: true };
     }
-    // `pauseRequested` is the same shape of signal and was missing from this
-    // funnel, so a human's Pause was reverted by the orchestrator's next
-    // whole-object write - one built from a snapshot that predated the request.
-    // The CLI and the dashboard both reported success and the run kept going.
-    // Carried forward in one direction only: raising it here is what stops the
-    // drop, while LOWERING it stays the job of `mutate` (requestResume), so a
-    // stale in-memory true cannot re-pause a run somebody just resumed.
-    if (!out.pauseRequested && onDisk.state.pauseRequested === true) {
-      out = { ...out, pauseRequested: true };
-    }
+    // `pauseRequested` defers to disk in BOTH directions, exactly like
+    // `pendingGuidance` below, which makes `write` unable to change this field
+    // at all and leaves `mutate` as the only thing that ever does.
+    //
+    // One direction is not enough, and shipping it that way was a bug of its
+    // own. Raising only fixes the dropped pause (a stale `false` written over a
+    // request that arrived mid-turn) but permits its mirror image: after a
+    // resume lowers the flag, a stale in-memory `true` from before the resume is
+    // written straight back and the run pauses again, having been resumed. Both
+    // are the same mistake - a whole-object write deciding a field that belongs
+    // to whoever raised or cleared it - so neither direction belongs here.
+    out = { ...out, pauseRequested: onDisk.state.pauseRequested };
     // `pendingGuidance` belongs to whoever queued it, not to the caller's
     // in-memory snapshot. A whole-object write built before a note arrived
     // would drop it; one built before a DRAIN would resurrect it. Deferring to

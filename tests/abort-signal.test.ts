@@ -112,7 +112,9 @@ describe("abort as a signal", () => {
   it("does not park a paused run in the pause loop when it is aborted", async () => {
     await claimForThisProcess();
     const s = await store.read();
-    await store.write({ ...s, pauseRequested: true });
+    // Raised through mutate: `write` defers to disk for this flag by design,
+    // so a fixture must arrange it the way the product does.
+    await store.mutate((fresh) => ({ next: { ...fresh, pauseRequested: true }, result: null }));
 
     const pausing = applyPauseIfRequested({
       state: await store.read(),

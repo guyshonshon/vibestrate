@@ -172,7 +172,7 @@ describe("vibe saga status | pause | resume", () => {
     await seedLiveRun(dir, task.id, runId);
     // Mark a pending pause so resume has something to clear.
     const store = new RunStateStore(dir, runId);
-    await store.write({ ...(await store.read()), pauseRequested: true });
+    await store.mutate((fresh) => ({ next: { ...fresh, pauseRequested: true }, result: null }));
 
     expect(await cmdResume(task.id, { cwd: dir })).toBe(0);
     expect((await store.read()).pauseRequested).toBe(false);
