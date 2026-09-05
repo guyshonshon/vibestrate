@@ -262,6 +262,34 @@ describe("readFreshFileReads - containment", () => {
   // links resolve) also made an ABSOLUTE hint resolvable anywhere under the
   // project - .git, another run's artifacts - which is not what a step hint is
   // for.
+  // Refusing the ABSOLUTE spelling alone bought nothing: the same file was
+  // reachable by its relative one, through the same fallback root. Containment
+  // has to be decided by destination - the project answers a hint only when the
+  // worktree actually links there.
+  it("refuses a project file by its RELATIVE spelling too, not just its absolute one", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-rel-")));
+    try {
+      const proj = path.join(base, "proj");
+      const wt = path.join(base, ".vibestrate-worktrees", "run-1");
+      await fs.mkdir(path.join(proj, ".vibestrate", "runs", "other"), { recursive: true });
+      await fs.mkdir(wt, { recursive: true });
+      await fs.writeFile(path.join(proj, ".vibestrate", "runs", "other", "notes.md"), "OTHER-RUN\n");
+      await fs.writeFile(path.join(wt, "ok.md"), "mine\n");
+
+      const abs = path.join(proj, ".vibestrate", "runs", "other", "notes.md");
+      const reads = await readFreshFileReads({
+        worktreePath: wt,
+        projectRoot: proj,
+        fileHints: ["ok.md", abs, path.relative(proj, abs)],
+      });
+
+      expect(reads.map((r) => r.path)).toEqual(["ok.md"]);
+      expect(JSON.stringify(reads)).not.toContain("OTHER-RUN");
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
   it("refuses an absolute hint even when it points inside the project", async () => {
     const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-abs-")));
     try {

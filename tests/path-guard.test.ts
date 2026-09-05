@@ -3,9 +3,10 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
-  resolveSafePath,
-  buildProjectRoots,
   PathGuardError,
+  buildProjectRoots,
+  linkWalkStart,
+  resolveSafePath,
 } from "../src/core/path-guard.js";
 
 describe("resolveSafePath - run worktree precedence (T1)", () => {
@@ -255,5 +256,54 @@ describe("resolveSafePath - symlink chains that leave the root", () => {
     await fs.symlink("deep/nested", path.join(root, "dirlink-inside"));
     const resolved = await resolveSafePath("dirlink-inside/real.md", roots());
     expect(resolved.absolutePath).toContain("real.md");
+  });
+});
+
+
+/**
+ * The string math of the link walk, under BOTH path flavours.
+ *
+ * This exists because the Windows bug it pins could not be caught where the
+ * code is written: on POSIX the slice is a no-op, so a POSIX filesystem test
+ * passes with the fix reverted, and the only leg that could fail one is the
+ * Windows workflow its own header calls "NOT a required gate" - the leg that
+ * was red through a release. A table under path.win32 runs everywhere.
+ */
+describe("linkWalkStart - the root is carried, never re-walked", () => {
+  const win = path.win32;
+
+  it("never re-appends a Windows root as a segment", () => {
+    for (const target of [
+      "C:\\proj\\packages\\pkg",
+      "C:/proj/x",
+      "c:\\proj\\x",
+      "\\\\?\\C:\\x",
+      "\\\\server\\share\\x",
+      "\\\\?\\UNC\\server\\share\\x",
+    ]) {
+      const { startAt, body } = linkWalkStart(target, "C:\\somewhere", win);
+      let walked = startAt;
+      for (const segment of body.split(/[\\/]+/)) {
+        if (segment === "" || segment === ".") continue;
+        walked = win.join(walked, segment);
+      }
+      expect(walked, target).toBe(win.resolve(target));
+    }
+  });
+
+  it("leaves a relative target and its starting point alone", () => {
+    const { startAt, body } = linkWalkStart("packages/pkg", "C:\\proj", win);
+    expect(startAt).toBe("C:\\proj");
+    expect(body).toBe("packages/pkg");
+  });
+
+  it("is a no-op on posix, which is why the Windows break was invisible here", () => {
+    for (const target of ["/a/b", "/", "//a/b", "/a/../b", "a/b"]) {
+      const { startAt, body } = linkWalkStart(target, "/root", path.posix);
+      const expected = path.posix.isAbsolute(target)
+        ? { startAt: "/", body: target.slice(1) }
+        : { startAt: "/root", body: target };
+      expect({ startAt, body }, target).toEqual(expected);
+    }
   });
 });

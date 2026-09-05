@@ -128,6 +128,32 @@ async function realLocationOf(target: string, budget: HopBudget): Promise<string
 }
 
 /**
+ * Where a link target's walk starts, and the part of it left to walk.
+ *
+ * Split out ONLY so the string math is testable under both path flavours. The
+ * bug this encodes was invisible to every POSIX test: on Windows the root is a
+ * drive, and a drive also survives the split as a segment, so walking the whole
+ * string re-appended it - "C:\\" + "C:" => "C:\\C:\\..." - and every absolute
+ * link target read as a containment escape. The only CI leg that could catch it
+ * is the Windows one, which the workflow's own header calls not a required
+ * gate, and which was red through a release. A pure function it is, then.
+ *
+ * The slice uses the ORIGINAL string's root, not path.resolve's, so its length
+ * matches the string being sliced.
+ */
+export function linkWalkStart(
+  target: string,
+  relativeTo: string,
+  flavour: Pick<typeof path, "isAbsolute" | "parse" | "resolve"> = path,
+): { startAt: string; body: string } {
+  const absolute = flavour.isAbsolute(target);
+  return {
+    startAt: absolute ? flavour.parse(flavour.resolve(target)).root : relativeTo,
+    body: absolute ? target.slice(flavour.parse(target).root.length) : target,
+  };
+}
+
+/**
  * Follow a symlink chain to where it really lands.
  *
  * The leaf check used to judge a dangling link by ONE textual hop: read the
@@ -164,16 +190,8 @@ async function resolveThroughLinks(
     // guard approved it, and a write through the approved path landed outside
     // the root. That is the same one-textual-hop mistake this function was
     // written to remove, hiding in the `..` handling.
-    const absolute = path.isAbsolute(target);
-    const startAt = absolute ? path.parse(path.resolve(target)).root : realDir;
-    // Split only the part AFTER the root. `startAt` already carries it, and on
-    // Windows the root is a drive ("C:\\"), which also survives the split as a
-    // segment - so walking the whole string re-appended it, "C:\\" + "C:" =>
-    // "C:\\C:\\...", and every absolute link target read as an escape. POSIX
-    // hid this: its root is "/" and the leading empty segment was skipped
-    // already, which is why the checks on this fix all passed and the Windows
-    // leg went red. Slice with the ORIGINAL string's root so the length matches.
-    const body = absolute ? target.slice(path.parse(target).root.length) : target;
+    // See linkWalkStart: the root is carried by `startAt`, never re-walked.
+    const { startAt, body } = linkWalkStart(target, realDir);
     let walked = startAt;
     for (const segment of body.split(/[\\/]+/)) {
       if (segment === "" || segment === ".") continue;

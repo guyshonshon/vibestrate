@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **A file hint is judged by where it lands, not how it is spelled.** 0.4.2 said
+  it had closed hints reaching the rest of your project; it had only refused the
+  absolute spelling, and the same files were still reachable by their relative
+  one. The run's own directory is now the only place a hint resolves, unless the
+  run links elsewhere itself, which is the case that needed the fallback.
+
 ## 0.4.2
 
 - **A symlink target that climbs out with `..` is refused**, on Windows as well
@@ -18,10 +26,10 @@
   prompts can halt a run.
 
 - **A file hint stays inside the run.** Allowing the project as a second
-  location, so hints could follow the linked `node_modules`, also let an
-  absolute hint reach anything under the project, including another run's
-  artifacts. Hints are relative by contract and are now held to it, and a
-  location only answers a hint when it actually holds the file.
+  location, so hints could follow the linked `node_modules`, also let a hint
+  reach anything under the project, including another run's artifacts. The
+  project now answers a hint only when the run's own directory actually links
+  there, which is what makes the linked case work without opening the rest.
 
 - **A credential never chases a redirect.** The model probe, the telemetry
   exporter and the chat-completions call all pointed at user-configurable

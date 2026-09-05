@@ -13,6 +13,7 @@
 // from the worktree so the packet reflects the CURRENT bytes on disk, not what
 // some earlier step remembered.
 
+import fs from "node:fs/promises";
 import path from "node:path";
 import { readText, pathExists } from "../../utils/fs.js";
 import { isSecretLikePath, redactSecretsInText } from "../diff-service.js";
@@ -185,18 +186,43 @@ export async function readFreshFileReads(input: {
   // Worktree first: a file that exists in both is the run's copy, not the
   // project's. `resolveSafePath` still proves real containment inside whichever
   // root matches, so a link out of BOTH roots stays refused.
-  const roots = buildProjectRoots({ projectRoot, worktreePath, worktreeFirst: true });
+  /**
+   * Which roots may answer ONE hint.
+   *
+   * The project was added as a fallback so a hint through a linked environment
+   * directory resolves - `linkWorktreeEnvironment` symlinks `node_modules` and
+   * `.venv` back into the project, and a worktree is a sibling of it, so those
+   * escape the worktree root by construction. But an unconditional fallback
+   * makes every project file reachable, including `.git` and other runs'
+   * artifacts, which is not what a step hint is for.
+   *
+   * So the fallback is earned by DESTINATION, not by spelling: the project
+   * answers only when the worktree itself links there, which is detected rather
+   * than hardcoded so it holds for whatever linkWorktreeEnvironment created.
+   * Refusing the absolute spelling did NOT do this job - the same file was
+   * still reachable by its relative one, through the same root.
+   */
+  const rootsFor = async (relPath: string) => {
+    const first = relPath.split("/")[0] ?? "";
+    const linksIntoProject =
+      first !== "" &&
+      (await fs
+        .lstat(path.join(worktreePath, first))
+        .then((entry) => entry.isSymbolicLink())
+        .catch(() => false));
+    return linksIntoProject
+      ? buildProjectRoots({ projectRoot, worktreePath, worktreeFirst: true })
+      : [{ kind: "worktree" as const, absolutePath: worktreePath, label: "run worktree" }];
+  };
   const out: StepPacketFileRead[] = [];
   for (const hint of fileHints) {
     const rel = hint.trim();
     if (!rel) continue;
     const normalized = rel.replace(/\\/g, "/");
     if (isSecretLikePath(normalized)) continue;
-    // Hints are RELATIVE by contract (the docstring above says so). Adding the
-    // project as a second root was needed for env links, which are relative -
-    // but it also made an ABSOLUTE hint resolvable anywhere under the project,
-    // including .git and another run's artifacts. Refusing absolute here keeps
-    // the env-link fix and closes what it widened.
+    // Hints are RELATIVE by contract; an absolute one is refused outright.
+    // On its own that refusal bought nothing - the same file was reachable by
+    // its relative spelling - so the real containment is the root choice below.
     if (normalized.startsWith("/") || /^[a-zA-Z]:\//.test(normalized)) continue;
 
     // Containment goes through the project's hardened resolver rather than a
@@ -213,7 +239,7 @@ export async function readFreshFileReads(input: {
     // against the project, which is the correct answer and cannot be reached by
     // handing both roots to one call.
     let resolved: string | null = null;
-    for (const root of roots) {
+    for (const root of await rootsFor(normalized)) {
       try {
         const safe = await resolveSafePath(normalized, [root]);
         if (safe.isSecretLike) break;
