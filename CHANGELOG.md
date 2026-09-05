@@ -1,12 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.4.3
 
 - **A file hint is judged by where it lands, not how it is spelled.** 0.4.2 said
   it had closed hints reaching the rest of your project; it had only refused the
   absolute spelling, and the same files were still reachable by their relative
   one. The run's own directory is now the only place a hint resolves, unless the
   run links elsewhere itself, which is the case that needed the fallback.
+  Hints are written by the model, so repository content could name one: the
+  files reachable this way included `.git/config`, which carries credentials in
+  remote URLs, and other runs' artifacts, and their bytes went into the next
+  step's prompt and into a stored artifact. If you run untrusted repositories
+  through a supervised run, take this one.
 
 ## 0.4.2
 
