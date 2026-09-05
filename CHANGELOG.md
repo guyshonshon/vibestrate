@@ -2,7 +2,8 @@
 
 ## 0.4.2
 
-- **A symlink target that climbs out with `..` is refused.** 0.4.1 hardened the
+- **A symlink target that climbs out with `..` is refused**, on Windows as well
+  as macOS and Linux. 0.4.1 hardened the
   path guard but judged a link's target with a lexical resolve, which collapses
   `..` textually. The kernel does not: a `..` after a symlink climbs from where
   that link landed. A link to `dl/../x`, with `dl` pointing out of your project,

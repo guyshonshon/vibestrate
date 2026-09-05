@@ -164,11 +164,18 @@ async function resolveThroughLinks(
     // guard approved it, and a write through the approved path landed outside
     // the root. That is the same one-textual-hop mistake this function was
     // written to remove, hiding in the `..` handling.
-    const startAt = path.isAbsolute(target)
-      ? path.parse(path.resolve(target)).root
-      : realDir;
+    const absolute = path.isAbsolute(target);
+    const startAt = absolute ? path.parse(path.resolve(target)).root : realDir;
+    // Split only the part AFTER the root. `startAt` already carries it, and on
+    // Windows the root is a drive ("C:\\"), which also survives the split as a
+    // segment - so walking the whole string re-appended it, "C:\\" + "C:" =>
+    // "C:\\C:\\...", and every absolute link target read as an escape. POSIX
+    // hid this: its root is "/" and the leading empty segment was skipped
+    // already, which is why the checks on this fix all passed and the Windows
+    // leg went red. Slice with the ORIGINAL string's root so the length matches.
+    const body = absolute ? target.slice(path.parse(target).root.length) : target;
     let walked = startAt;
-    for (const segment of target.split(/[\\/]+/)) {
+    for (const segment of body.split(/[\\/]+/)) {
       if (segment === "" || segment === ".") continue;
       if (segment === "..") {
         // Up from where the path so far REALLY lands, which is what the kernel

@@ -213,6 +213,27 @@ describe("resolveSafePath - symlink chains that leave the root", () => {
 
   // The mirror: `..` that stays inside must still resolve, or every relative
   // link in a normal project breaks.
+  // An ABSOLUTE stored target is the default form on Windows (mklink /D, and
+  // Node's own fs.symlink(..., "junction") normalises to absolute), and it is
+  // how package managers link workspaces there. The walk splits only the part
+  // after the root now: the root is a drive on Windows and survived the split
+  // as a segment, so walking the whole string re-appended it ("C:\\" + "C:")
+  // and every absolute target read as an escape. POSIX hid it - its root is "/"
+  // and the leading empty segment was already skipped.
+  it("resolves a link whose stored target is absolute and inside the root", async () => {
+    await fs.mkdir(path.join(root, "generated"), { recursive: true });
+    await fs.symlink(path.join(root, "generated", "out.md"), path.join(root, "abs-pending.md"));
+    const resolved = await resolveSafePath("abs-pending.md", roots());
+    expect(resolved.absolutePath).toBe(path.join(root, "abs-pending.md"));
+  });
+
+  it("resolves a not-yet-created file under a directory link with an absolute target", async () => {
+    await fs.mkdir(path.join(root, "packages", "pkg"), { recursive: true });
+    await fs.symlink(path.join(root, "packages", "pkg"), path.join(root, "linked"));
+    const resolved = await resolveSafePath("linked/new.ts", roots());
+    expect(resolved.absolutePath).toContain("new.ts");
+  });
+
   it("still allows a .. that stays inside the root", async () => {
     await fs.mkdir(path.join(root, "a", "b"), { recursive: true });
     await fs.writeFile(path.join(root, "a", "target.md"), "hi\n");
