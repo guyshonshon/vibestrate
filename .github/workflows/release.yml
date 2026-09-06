@@ -39,7 +39,71 @@ permissions:
   contents: read
 
 jobs:
+  # ci.yml and this workflow both run on Linux. The Windows pipeline is separate
+  # and nothing waits on it, which is fine for an ordinary push and not fine for
+  # a publish: on 2026-09-05 a tag was cut while `CI (Windows)` was failing on
+  # that commit, and only a manual check caught it before the click. A release
+  # that ships a build broken on Windows is not recoverable - npm versions
+  # cannot be reused.
+  #
+  # This runs BEFORE `publish`, so a doomed release never reaches the reviewer's
+  # approval prompt.
+  windows-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Read the other workflow's runs. Nothing else needs it.
+      actions: read
+    steps:
+      # `git push --follow-tags` pushes the release commit and its tag at the
+      # same moment, so `CI (Windows)` is usually still starting when this job
+      # begins. Waiting is the normal path, not the exception - a check that
+      # read the status once would fail every well-formed release.
+      - name: CI (Windows) is green on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          DEADLINE=$(( SECONDS + 40 * 60 ))
+          while :; do
+            RUN=$(gh api \
+              "repos/$REPO/actions/workflows/ci-windows.yml/runs?head_sha=$SHA&per_page=1" \
+              --jq '.workflow_runs[0] | "\(.status) \(.conclusion) \(.html_url)"' 2>/dev/null || true)
+            STATUS=${RUN%% *}
+            case "$STATUS" in
+              completed)
+                REST=${RUN#* }
+                CONCLUSION=${REST%% *}
+                URL=${REST#* }
+                if [ "$CONCLUSION" = "success" ]; then
+                  echo "CI (Windows) passed on $SHA."
+                  exit 0
+                fi
+                echo "CI (Windows) concluded '$CONCLUSION' on $SHA, so this release is blocked."
+                echo "  $URL"
+                echo "Fix Windows first. A published version cannot be replaced."
+                exit 1
+                ;;
+              queued | in_progress | requested | waiting | pending)
+                echo "CI (Windows) is $STATUS on $SHA; waiting."
+                ;;
+              *)
+                echo "No CI (Windows) run found for $SHA; waiting for one to appear."
+                ;;
+            esac
+            if [ "$SECONDS" -ge "$DEADLINE" ]; then
+              echo "No successful CI (Windows) run for $SHA after 40 minutes."
+              echo "Failing closed: unverified on Windows is not the same as verified."
+              echo "Start one with:  gh workflow run ci-windows.yml --ref $SHA"
+              exit 1
+            fi
+            sleep 30
+          done
+
   publish:
+    needs: windows-gate
     runs-on: ubuntu-latest
     # LOAD-BEARING FOR AUTH, not only for the approval gate. Removing this line
     # made `npm publish` fail with `404 Not Found - PUT .../vibestrate`, which is

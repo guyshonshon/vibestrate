@@ -45,6 +45,52 @@ if [ "$(git rev-parse @)" != "$(git rev-parse '@{u}')" ]; then
   exit 1
 fi
 
+# ── Windows is green on what we are about to release ──────────────────
+# The local gate below and the release workflow both run on this machine's OS
+# and on Linux respectively. Windows is a separate pipeline that nothing waits
+# on, so a commit can sit on main, fully green to every gate anyone looks at,
+# and be broken on Windows. A tag was cut that way on 2026-09-05.
+#
+# Checked here so a bad tag is never created; the release workflow re-checks the
+# tag's own commit and refuses to publish, which is the part that actually
+# protects the registry. gh missing is a warning rather than a stop: the
+# workflow gate still holds, and this script has no other dependency on it.
+if command -v gh >/dev/null 2>&1; then
+  echo "→ Checking CI (Windows) on $(git rev-parse --short HEAD)…"
+  WIN_SHA="$(git rev-parse HEAD)"
+  WIN="$(gh api "repos/{owner}/{repo}/actions/workflows/ci-windows.yml/runs?head_sha=$WIN_SHA&per_page=1" \
+    --jq '.workflow_runs[0] | "\(.status) \(.conclusion)"' 2>/dev/null || true)"
+  case "$WIN" in
+    "completed success")
+      echo "  ✓ CI (Windows) passed."
+      ;;
+    "completed "*)
+      echo "✗ CI (Windows) concluded '${WIN#completed }' on this commit."
+      echo "  Fix Windows before releasing - a published version cannot be replaced."
+      exit 1
+      ;;
+    "")
+      echo "  ! Could not read CI (Windows) status (gh not authenticated?)."
+      echo "    The release workflow checks it again and will refuse to publish."
+      ;;
+    "null null")
+      # The API answers with nulls when no run exists for this commit yet.
+      echo "✗ No CI (Windows) run for this commit yet."
+      echo "  Wait for it to appear and finish, or start one:"
+      echo "    gh workflow run ci-windows.yml --ref $WIN_SHA"
+      exit 1
+      ;;
+    *)
+      echo "✗ CI (Windows) is '${WIN%% *}' on this commit, not finished."
+      echo "  Wait for it, then re-run. Tagging now creates a tag you have to delete."
+      exit 1
+      ;;
+  esac
+else
+  echo "  ! gh not installed, so CI (Windows) was not checked here."
+  echo "    The release workflow checks it and will refuse to publish if it is red."
+fi
+
 # ── Gate (mirrors CI) ─────────────────────────────────────────────────
 echo "→ Installing (frozen lockfile)…"
 pnpm install --frozen-lockfile

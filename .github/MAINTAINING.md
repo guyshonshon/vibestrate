@@ -42,6 +42,16 @@ at the tag, and fails if the tag name disagrees with it. Bumping and tagging
 stay a human decision made in the repo (`scripts/release.sh`), so a release
 cannot be manufactured by re-running a job.
 
+Before it publishes, a `windows-gate` job requires `CI (Windows)` to have
+concluded **success** on the tag's own commit, waiting up to 40 minutes for it
+(`git push --follow-tags` pushes the release commit and the tag together, so
+that run is usually still starting). Red, cancelled or absent all block, and the
+gate runs before the `release` environment's approval so a doomed release never
+reaches the click. `scripts/release.sh` checks the same thing before tagging,
+which is only a convenience - it stops a tag you would have to delete, while the
+workflow is what protects the registry. A published npm version cannot be
+replaced, so an unverified Windows leg is treated as a failed one.
+
 Two one-time setup steps, both in a browser:
 
 1. npmjs.com → `vibestrate` → Settings → **Trusted Publisher** → GitHub Actions
