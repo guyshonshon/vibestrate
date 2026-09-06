@@ -157,9 +157,11 @@ describe("applyPauseIfRequested", () => {
     // Stage a deferred resume - by the time applyPauseIfRequested polls
     // the second time, pauseRequested is false. Poll every 25ms for the
     // test loop to keep things snappy.
-    setTimeout(() => {
-      void requestResume(store, events);
-    }, 60);
+    const deferredResume = new Promise<void>((resolve, reject) => {
+      setTimeout(() => {
+        requestResume(store, events).then(() => resolve(), reject);
+      }, 60);
+    });
 
     const after = await applyPauseIfRequested({
       state: await store.read(),
@@ -167,6 +169,9 @@ describe("applyPauseIfRequested", () => {
       events,
       pollMs: 25,
     });
+    // The poll can observe the resumed STATE before the event append that
+    // accompanies it has flushed, and the log assertion below reads that file.
+    await deferredResume;
     // We round-trip back to the pre-pause status, with both flags cleared.
     expect(after.status).toBe("planned");
     expect(after.pausedAtStatus).toBeNull();
@@ -190,11 +195,17 @@ describe("applyPauseIfRequested", () => {
     // While paused, another writer (e.g., `vibe abort`) transitions to
     // aborted. applyPauseIfRequested must observe that and return the
     // terminal state so the orchestrator exits cleanly.
-    setTimeout(async () => {
-      const cur = await store.read();
-      const aborted = applyTransition(cur, "aborted");
-      await store.write(aborted);
-    }, 60);
+    // Awaited, not fire-and-forget: the write outlives the assertion otherwise
+    // and races the temp-dir teardown, which surfaces as an ENOTEMPTY rmdir on
+    // a loaded runner rather than as anything to do with pausing.
+    const externalAbort = new Promise<void>((resolve, reject) => {
+      setTimeout(() => {
+        void (async () => {
+          const cur = await store.read();
+          await store.write(applyTransition(cur, "aborted"));
+        })().then(resolve, reject);
+      }, 60);
+    });
 
     const after = await applyPauseIfRequested({
       state: await store.read(),
@@ -202,6 +213,7 @@ describe("applyPauseIfRequested", () => {
       events,
       pollMs: 25,
     });
+    await externalAbort;
     expect(after.status).toBe("aborted");
   });
 

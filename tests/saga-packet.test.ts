@@ -379,6 +379,36 @@ describe("readFreshFileReads - containment", () => {
     }
   });
 
+  // The lexical ".." filter is not enough: a linked DIRECTORY can point out of
+  // the project even when its name does not. The linker links whatever
+  // <project>/node_modules is, symlink included, and records the plain name.
+  it("refuses a linked directory that really lives outside the project", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-outlink-")));
+    try {
+      const proj = path.join(base, "proj");
+      const wt = path.join(base, "wt");
+      const far = path.join(base, "far");
+      await fs.mkdir(proj, { recursive: true });
+      await fs.mkdir(wt, { recursive: true });
+      await fs.mkdir(far, { recursive: true });
+      await fs.writeFile(path.join(far, "SECRETS.txt"), "OUTSIDE-THE-PROJECT\n");
+      // The PROJECT's own node_modules points out of the project.
+      await fs.symlink(far, path.join(proj, "node_modules"));
+      await fs.symlink(path.join(proj, "node_modules"), path.join(wt, "node_modules"));
+
+      const reads = await readFreshFileReads({
+        worktreePath: wt,
+        projectRoot: proj,
+        envLinks: ["node_modules"],
+        fileHints: ["node_modules/SECRETS.txt"],
+      });
+
+      expect(reads).toEqual([]);
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
   // envLinks is read back out of the run's own state file, which lives under
   // the project root - and a write-capable seat reaches the project root
   // through `<linked dir>/..`, because a linked dir is a symlink and its parent

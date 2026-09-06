@@ -21,9 +21,10 @@ export type GuardedFetchResult =
  *  Fail-closed on an error, an empty answer or a slow resolver. Exported so the
  *  token-bearing publish POST reuses the exact same SSRF rule set.
  *
- *  A re-export, not a second implementation: this file used to carry its own
- *  copy of the check, character-for-character the same as the flow importer's,
- *  which is how the two outbound paths would have drifted apart. */
+ *  A delegation, not a second implementation: this file used to carry its own
+ *  copy of the check, near enough identical to the flow importer's to look
+ *  interchangeable and already differing in where it stripped IPv6 brackets.
+ *  That is how two outbound paths drift apart. */
 export async function isFetchHostBlocked(
   hostname: string,
   opts: { resolveHost?: HostResolver; timeoutMs?: number } = {},

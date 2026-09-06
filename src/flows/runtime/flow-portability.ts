@@ -737,8 +737,9 @@ const systemResolver: HostResolver = async (hostname) => {
  */
 export type HostVerdict = "ok" | "blocked" | "unresolved" | "timeout";
 
-/** The one place a refused host is worded, so the four call sites cannot
- *  describe the same verdict differently. */
+/** The one place a refused host is worded, so no call site can describe the
+ *  same verdict differently. Counting them in a comment is how the last one got
+ *  missed: hub-client was a fifth, and it was the one already diverged. */
 export function hostRefusalReason(
   hostname: string,
   verdict: Exclude<HostVerdict, "ok">,

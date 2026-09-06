@@ -57,10 +57,11 @@ control, take this one and read the second entry.
   per hop of a redirect chain. Resolution now has its own deadline and fails
   closed when it expires. The check itself existed twice, character for
   character, once for the flow importer and once for everything else; the
-  duplicate is gone, so the two outbound paths can no longer drift apart. A
+  near-duplicate is gone, so the two outbound paths can no longer drift apart. A
   refusal also says what is actually true now: a host that would not resolve, or
   a resolver that did not answer, used to be reported as an address in private
-  space, which nothing had checked.
+  space, which nothing had checked. Five call sites worded that refusal by hand
+  and they had already started to drift; one helper words it now.
 
 ## 0.4.3
 

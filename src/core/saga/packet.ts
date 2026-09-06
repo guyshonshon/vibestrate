@@ -259,6 +259,31 @@ export async function readFreshFileReads(input: {
       if (/^[a-zA-Z]:/.test(dir)) return false;
       return !dir.split("/").includes("..");
     });
+
+  /**
+   * The grants, resolved once per call rather than once per hint.
+   *
+   * A lexical `..` filter is not enough, because the DIRECTORY can point out
+   * even when its name does not. `linkWorktreeEnvironment` links whatever
+   * `<project>/node_modules` is, symlink included, and records the plain name -
+   * so a project whose own `node_modules` points at `/` would hand this gate a
+   * root of `/` and answer `node_modules/etc/passwd`. Requiring the grant to
+   * really live inside the project closes that.
+   *
+   * The cost is a project whose env dir genuinely lives elsewhere (an
+   * out-of-tree `.venv`): hints under it are refused. That is a dropped hint,
+   * not a broken run, and it is the right side to fail on.
+   */
+  const projectReal = await fs.realpath(projectRoot).catch(() => path.resolve(projectRoot));
+  const grants: { dir: string; absolutePath: string }[] = [];
+  for (const dir of linkedDirs) {
+    const absolutePath = path.join(projectRoot, dir);
+    const real = await fs.realpath(absolutePath).catch(() => null);
+    if (real === null) continue;
+    if (real !== projectReal && !real.startsWith(projectReal + path.sep)) continue;
+    grants.push({ dir, absolutePath });
+  }
+
   type Attempt = { root: AllowedRoot; rel: string };
   const attemptsFor = (relPath: string): Attempt[] => {
     const attempts: Attempt[] = [
@@ -271,16 +296,16 @@ export async function readFreshFileReads(input: {
     // the linker really creates, and a first-segment test refused every hint
     // under one. Longest match wins, so a nested link is scoped to itself
     // rather than to a shorter one that also matches.
-    const dir = linkedDirs
-      .filter((d) => relPath === d || relPath.startsWith(d + "/"))
-      .sort((a, b) => b.length - a.length)[0];
-    if (dir !== undefined) {
-      const rest = relPath === dir ? "." : relPath.slice(dir.length + 1);
+    const grant = grants
+      .filter((g) => relPath === g.dir || relPath.startsWith(g.dir + "/"))
+      .sort((a, b) => b.dir.length - a.dir.length)[0];
+    if (grant !== undefined) {
+      const rest = relPath === grant.dir ? "." : relPath.slice(grant.dir.length + 1);
       attempts.push({
         root: {
           kind: "project",
-          absolutePath: path.join(projectRoot, dir),
-          label: `linked ${dir}`,
+          absolutePath: grant.absolutePath,
+          label: `linked ${grant.dir}`,
         },
         rel: rest,
       });
