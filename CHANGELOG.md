@@ -1,15 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.4.4
 
-- **The SSRF guard's name resolution is bounded, and there is now one of it.**
-  The guard promised a fetch bounded by size and time. The time part was armed
-  after the host check, and `dns.lookup` takes no cancellation, so a resolver
-  that never answered held the caller open with nothing able to stop it, once
-  per hop of a redirect chain. Resolution now has its own deadline and fails
-  closed when it expires. The check itself existed twice, character for
-  character, once for the flow importer and once for everything else; the
-  duplicate is gone, so the two outbound paths can no longer drift apart.
+Three fixes to the guards that decide what a run may read and write. If you
+run repositories you do not control, take this one.
 
 - **The file-hint gate asks the run what it linked, not the worktree.** 0.4.3
   said a hint resolves only inside the run's own directory unless the run linked
@@ -30,6 +24,15 @@
   path and a write through it landed outside. Only reachable if something has
   already planted two entries in your project, but the guard's whole job is to
   hold when that has happened.
+
+- **The SSRF guard's name resolution is bounded, and there is now one of it.**
+  The guard promised a fetch bounded by size and time. The time part was armed
+  after the host check, and `dns.lookup` takes no cancellation, so a resolver
+  that never answered held the caller open with nothing able to stop it, once
+  per hop of a redirect chain. Resolution now has its own deadline and fails
+  closed when it expires. The check itself existed twice, character for
+  character, once for the flow importer and once for everything else; the
+  duplicate is gone, so the two outbound paths can no longer drift apart.
 
 ## 0.4.3
 
