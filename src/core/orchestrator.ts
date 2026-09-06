@@ -415,7 +415,6 @@ export class Orchestrator {
   private readonly turnState: RunTurnState = createRunTurnState();
   /** Relative dirs this run symlinked from the project into the worktree; the
    *  file-hint gate consults this instead of the worktree's own disk state. */
-  private envLinks: readonly string[] = [];
   private readonly rules: string;
   private task: string;
   private readonly rawParams: Record<string, string>;
@@ -1257,8 +1256,7 @@ export class Orchestrator {
         // Persisted so the file-hint gate can ask what this run linked rather
         // than asking the worktree, which the agent writes.
         if (env.linked.length > 0) {
-          this.envLinks = env.linked.map((l) => l.dir);
-          state = { ...state, envLinks: [...this.envLinks] };
+          state = { ...state, envLinks: env.linked.map((l) => l.dir) };
           await stateStore.write(state);
         }
         await startup(
@@ -3074,7 +3072,7 @@ export class Orchestrator {
                 // fail-closes correctness). This is the ONLY place a saga
                 // touches `reviewDecision`, and only on the ESCALATE halt.
                 if (this.sagaSupervisor.enabled && this.taskId) {
-                  const verdict = await runSagaSupervisorTurn(this.sagaTurnDeps(), {
+                  const verdict = await runSagaSupervisorTurn(this.sagaTurnDeps(state), {
                     completedItem,
                     itemIndex,
                     checklistItems,
@@ -3120,7 +3118,7 @@ export class Orchestrator {
                   // escalates - a clean halt keeping the committed work, exactly
                   // like a supervisor ESCALATE.
                   if (verdict === "ENHANCE") {
-                    const outcome = await runSagaEnhanceTurn(this.sagaTurnDeps(), {
+                    const outcome = await runSagaEnhanceTurn(this.sagaTurnDeps(state), {
                       completedItem,
                       itemIndex,
                       checklistItems,
@@ -4113,7 +4111,7 @@ export class Orchestrator {
   /** Deps for the extracted saga supervisor/enhance turns (run-engine/saga-turns.ts).
    *  Assembled fresh per call so live fields (task text, active crew) are current.
    *  Call sites gate on `this.taskId` before a saga turn, so the assertion holds. */
-  private sagaTurnDeps(): SagaTurnDeps {
+  private sagaTurnDeps(state: RunState): SagaTurnDeps {
     return {
       projectRoot: this.projectRoot,
       config: this.config,
@@ -4122,7 +4120,10 @@ export class Orchestrator {
       activeCrewId: this.activeCrewId,
       sagaSupervisor: this.sagaSupervisor,
       unattended: this.unattended,
-      envLinks: this.envLinks,
+      // From the run's durable state, never a field mirroring it: a resumed
+      // run does not re-link, so a mirror would be empty while the record is
+      // not, and every hint through a linked directory would be dropped.
+      envLinks: state.envLinks,
       enforceSpendCap: (ctx) => this.budgetGovernor.enforceSpendCap(ctx),
       // Resolve-and-cache on the orchestrator: the same catalog cache real
       // turns use, retried on the next turn if resolution failed (null).
