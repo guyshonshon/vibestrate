@@ -1,15 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.4.4
 
-- **An abort during a pause is no longer discarded.** Pausing wrote the paused
-  state as a whole object built from a read taken moments earlier, so an abort
-  landing in that window was overwritten. The run then resumed to whatever it
-  was doing before the pause and carried on, having silently dropped the abort.
-  Entering a pause is a locked read-modify-write now, and a run that reached a
-  terminal state in that window is reported as terminal instead of paused on
-  top of.
-
+Fixes to the guards that decide what a run may read and write, to the gate that
+decides when a run is done, and a correction to what the worktree boundary was
+claiming. If you run repositories you do not control, take this one. Everyone
+should read the first entry: a run that checked nothing could merge.
 - **A run that checked nothing no longer reads as a run that passed.** Validation
   counts commands that could not start separately from commands that failed, and
   the merge gate only looked at the failed count. So a run whose entire toolchain
@@ -21,21 +17,6 @@
   blocks, and the count of commands that could not run is in the reviewer's
   prompt as "Could not run", so a partly-checked run is judged rather than
   rounded up.
-
-- **Runs say up front that a linked environment reaches your project.** Linking
-  `node_modules` and virtualenvs into the worktree is what lets your checks run
-  there, and it stays on by default, because turning it off silently costs every
-  run its checks. What was missing is that a link's parent is your project root,
-  so a run that can write reaches your whole project through it. That now shows
-  as a warning before the run starts, next to the other preflight warnings, with
-  both ways to remove it and what each costs. Patch apply still refuses paths
-  beyond a link, so the diff you review remains only the worktree's work.
-
-## 0.4.4
-
-Fixes to the guards that decide what a run may read and write, and a correction
-to what the worktree boundary was claiming. If you run repositories you do not
-control, take this one and read the second entry.
 
 - **A file hint can only name a path inside the run's worktree or a directory
   the run linked in.** 0.4.3 said that and did not do it. It decided which hints
@@ -71,6 +52,23 @@ control, take this one and read the second entry.
   wrong and is now correct. Patch apply still refuses paths that cross a
   symlink, so the diff you review remains only the worktree's work. If that
   boundary was why you left links on, `git.linkEnvironment: off` is the switch.
+
+- **An abort during a pause is no longer discarded.** Pausing wrote the paused
+  state as a whole object built from a read taken moments earlier, so an abort
+  landing in that window was overwritten. The run then resumed to whatever it
+  was doing before the pause and carried on, having silently dropped the abort.
+  Entering a pause is a locked read-modify-write now, and a run that reached a
+  terminal state in that window is reported as terminal instead of paused on
+  top of.
+
+- **Runs say up front that a linked environment reaches your project.** Linking
+  `node_modules` and virtualenvs into the worktree is what lets your checks run
+  there, and it stays on by default, because turning it off silently costs every
+  run its checks. What was missing is that a link's parent is your project root,
+  so a run that can write reaches your whole project through it. That now shows
+  as a warning before the run starts, next to the other preflight warnings, with
+  both ways to remove it and what each costs. Patch apply still refuses paths
+  beyond a link, so the diff you review remains only the worktree's work.
 
 - **A backslash in a filename is a filename, not a path separator.** On macOS
   and Linux a backslash is a perfectly legal character in a file name, and the
