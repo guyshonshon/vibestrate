@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **The file-hint gate asks the run what it linked, not the worktree.** 0.4.3
+  said a hint resolves only inside the run's own directory unless the run linked
+  elsewhere itself. It decided that by asking the worktree whether the hint's
+  first directory was a symlink, and the run's own agent writes the worktree.
+  One `ln -s` named after a project directory handed back everything 0.4.3
+  claimed to have closed, `.git/config` and other runs' artifacts included. The
+  gate now consults the list the linker recorded when it created those links,
+  which nothing inside the run can forge. The same change fixes hints under a
+  nested `packages/<name>/node_modules`, which the first-directory test had been
+  refusing silently.
+
 - **A backslash in a filename is a filename, not a path separator.** On macOS
   and Linux a backslash is a perfectly legal character in a file name, and the
   path guard was splitting symlink targets on it. A link pointing at a file

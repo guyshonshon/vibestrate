@@ -148,6 +148,13 @@ export const runStateSchema = z.object({
   projectRoot: z.string().min(1),
   worktreePath: z.string().nullable(),
   branchName: z.string().nullable(),
+  // Relative directories linkWorktreeEnvironment symlinked from the project
+  // into the worktree (node_modules, .venv, packages/*/node_modules). Recorded
+  // because a file hint reaching the project THROUGH one of these is legitimate
+  // and anything else is not - and the alternative, asking the worktree's disk
+  // whether a directory is a symlink, asks state the run's own agent writes.
+  // Defaulted so a run recorded before this field parses unchanged.
+  envLinks: z.array(z.string()).default([]),
   reviewLoopCount: z.number().int().min(0).default(0),
   maxReviewLoops: z.number().int().min(0).default(2),
   startedAt: z.string(),
@@ -535,6 +542,7 @@ export function createInitialState(input: {
     projectRoot: input.projectRoot,
     worktreePath: input.worktreePath,
     branchName: input.branchName,
+    envLinks: [],
     reviewLoopCount: 0,
     maxReviewLoops: input.maxReviewLoops,
     abortRequested: false,

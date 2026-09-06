@@ -173,6 +173,20 @@ export function buildStepPacket(args: BuildStepPacketArgs): string {
  */
 export async function readFreshFileReads(input: {
   worktreePath: string;
+  /**
+   * Relative directories this run symlinked from the project into the worktree
+   * (`RunState.envLinks`). A hint UNDER one of these legitimately reaches the
+   * project and nothing else does.
+   *
+   * It has to be the run's own record. The previous version asked the worktree
+   * whether the hint's first segment was a symlink, which is state the run's
+   * agent writes: one `ln -s /nonexistent .git` handed back the whole project
+   * root, `.git/config` and other runs' artifacts included - the two things the
+   * gate names as what it stops. It also only ever looked at the FIRST segment,
+   * so every nested link the linker creates (`packages/<name>/node_modules`) was
+   * refused, dropping hints silently.
+   */
+  envLinks?: readonly string[];
   /** The project root. Required for containment, because a run worktree is a
    *  SIBLING of the project (`git.worktreeDir` defaults to
    *  `../.vibestrate-worktrees`) and its env dirs are SYMLINKS back into the
@@ -189,36 +203,40 @@ export async function readFreshFileReads(input: {
   /**
    * Which roots may answer ONE hint.
    *
-   * The project was added as a fallback so a hint through a linked environment
-   * directory resolves - `linkWorktreeEnvironment` symlinks `node_modules` and
-   * `.venv` back into the project, and a worktree is a sibling of it, so those
-   * escape the worktree root by construction. But an unconditional fallback
-   * makes every project file reachable, including `.git` and other runs'
-   * artifacts, which is not what a step hint is for.
+   * The project is a fallback so a hint through a linked environment directory
+   * resolves: linkWorktreeEnvironment symlinks node_modules, .venv and nested
+   * packages/<x>/node_modules back into the project, and a worktree is a
+   * sibling of it, so those escape the worktree root by construction. An
+   * unconditional fallback would make every project file reachable - .git and
+   * other runs' artifacts included - which is not what a step hint is for.
    *
-   * So the fallback is earned by DESTINATION, not by spelling: the project
-   * answers only when the worktree itself links there, which is detected rather
-   * than hardcoded so it holds for whatever linkWorktreeEnvironment created.
-   * Refusing the absolute spelling did NOT do this job - the same file was
-   * still reachable by its relative one, through the same root.
+   * The fallback is earned by the RUN'S OWN RECORD of what it linked. Asking
+   * the worktree's disk instead was defeated by one `ln -s`, because the agent
+   * writes the worktree.
    */
-  const rootsFor = async (relPath: string) => {
-    const first = relPath.split("/")[0] ?? "";
-    const linksIntoProject =
-      first !== "" &&
-      (await fs
-        .lstat(path.join(worktreePath, first))
-        .then((entry) => entry.isSymbolicLink())
-        .catch(() => false));
-    return linksIntoProject
+  const linkedDirs = (input.envLinks ?? []).map((dir) => dir.replace(/\\/g, "/").replace(/\/+$/, ""));
+  const worktreeOnly = [
+    { kind: "worktree" as const, absolutePath: worktreePath, label: "run worktree" },
+  ];
+  const rootsFor = (relPath: string) => {
+    // Segment-prefix, not first-segment: `packages/app/node_modules` is a dir
+    // the linker really creates, and a first-segment test refused every hint
+    // under one.
+    const under = linkedDirs.some(
+      (dir) => relPath === dir || relPath.startsWith(dir + "/"),
+    );
+    return under
       ? buildProjectRoots({ projectRoot, worktreePath, worktreeFirst: true })
-      : [{ kind: "worktree" as const, absolutePath: worktreePath, label: "run worktree" }];
+      : worktreeOnly;
   };
   const out: StepPacketFileRead[] = [];
   for (const hint of fileHints) {
     const rel = hint.trim();
     if (!rel) continue;
-    const normalized = rel.replace(/\\/g, "/");
+    // Leading "./" removed before anything looks at the path: the previous
+    // gate keyed on the first segment, so "./x" made that segment "." and
+    // slipped past - the same spelling-dodge as the round before it.
+    const normalized = rel.replace(/\\/g, "/").replace(/^(?:\.\/)+/, "");
     if (isSecretLikePath(normalized)) continue;
     // Hints are RELATIVE by contract; an absolute one is refused outright.
     // On its own that refusal bought nothing - the same file was reachable by
@@ -239,7 +257,7 @@ export async function readFreshFileReads(input: {
     // against the project, which is the correct answer and cannot be reached by
     // handing both roots to one call.
     let resolved: string | null = null;
-    for (const root of await rootsFor(normalized)) {
+    for (const root of rootsFor(normalized)) {
       try {
         const safe = await resolveSafePath(normalized, [root]);
         if (safe.isSecretLike) break;

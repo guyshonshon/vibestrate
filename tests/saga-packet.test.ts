@@ -248,6 +248,8 @@ describe("readFreshFileReads - containment", () => {
       const reads = await readFreshFileReads({
         worktreePath: wt,
         projectRoot: proj,
+        // What the orchestrator records after linkWorktreeEnvironment runs.
+        envLinks: ["node_modules"],
         fileHints: ["app.ts", "node_modules/pkg/index.d.ts", "innocent.md"],
       });
 
@@ -333,6 +335,69 @@ describe("readFreshFileReads - containment", () => {
 
       expect(reads).toHaveLength(1);
       expect(reads[0]!.content).toContain("WORKTREE COPY");
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
+  // The gate used to ask the WORKTREE whether the hint's first segment was a
+  // symlink. The run's own agent writes the worktree, so one dangling link
+  // named after a project directory handed the whole project root back. It now
+  // asks the run's record of what it linked, which the agent cannot forge.
+  it("is not opened by a symlink the agent plants in the worktree", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-plant-")));
+    try {
+      const proj = path.join(base, "proj");
+      const wt = path.join(base, ".vibestrate-worktrees", "run-1");
+      await fs.mkdir(path.join(proj, ".vibestrate", "runs", "other"), { recursive: true });
+      await fs.mkdir(wt, { recursive: true });
+      await fs.writeFile(path.join(proj, ".vibestrate", "runs", "other", "notes.md"), "OTHER-RUN\n");
+      await fs.writeFile(path.join(wt, "ok.md"), "mine\n");
+      // The plant: dangling, so nothing about its target can be inspected.
+      await fs.symlink("/nonexistent", path.join(wt, ".vibestrate"));
+
+      const reads = await readFreshFileReads({
+        worktreePath: wt,
+        projectRoot: proj,
+        envLinks: [],
+        fileHints: ["ok.md", ".vibestrate/runs/other/notes.md"],
+      });
+
+      expect(reads.map((r) => r.path)).toEqual(["ok.md"]);
+      expect(JSON.stringify(reads)).not.toContain("OTHER-RUN");
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
+  // linkWorktreeEnvironment links nested package directories too. A
+  // first-segment test refused every hint under one, silently.
+  it("reads through a NESTED environment link, and through the ./ spelling", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-nested-")));
+    try {
+      const proj = path.join(base, "proj");
+      const wt = path.join(base, ".vibestrate-worktrees", "run-1");
+      await fs.mkdir(path.join(proj, "packages", "app", "node_modules", "dep"), { recursive: true });
+      await fs.mkdir(path.join(proj, "node_modules", "pkg"), { recursive: true });
+      await fs.mkdir(path.join(wt, "packages", "app"), { recursive: true });
+      await fs.writeFile(path.join(proj, "packages", "app", "node_modules", "dep", "main.js"), "DEP\n");
+      await fs.writeFile(path.join(proj, "node_modules", "pkg", "index.js"), "PKG\n");
+      await fs.symlink(
+        path.join(proj, "packages", "app", "node_modules"),
+        path.join(wt, "packages", "app", "node_modules"),
+      );
+      await fs.symlink(path.join(proj, "node_modules"), path.join(wt, "node_modules"));
+
+      const reads = await readFreshFileReads({
+        worktreePath: wt,
+        projectRoot: proj,
+        envLinks: ["node_modules", "packages/app/node_modules"],
+        fileHints: ["packages/app/node_modules/dep/main.js", "./node_modules/pkg/index.js"],
+      });
+
+      expect(reads).toHaveLength(2);
+      expect(JSON.stringify(reads)).toContain("DEP");
+      expect(JSON.stringify(reads)).toContain("PKG");
     } finally {
       await fs.rm(base, { recursive: true, force: true });
     }

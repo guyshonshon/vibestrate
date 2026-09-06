@@ -413,6 +413,9 @@ export class Orchestrator {
    *  object rather than four fields because more than one call path writes them
    *  - see run-engine/run-turn-state.ts for why that matters. */
   private readonly turnState: RunTurnState = createRunTurnState();
+  /** Relative dirs this run symlinked from the project into the worktree; the
+   *  file-hint gate consults this instead of the worktree's own disk state. */
+  private envLinks: readonly string[] = [];
   private readonly rules: string;
   private task: string;
   private readonly rawParams: Record<string, string>;
@@ -1250,6 +1253,13 @@ export class Orchestrator {
                     .join("; ")}.`,
             data: env,
           });
+        }
+        // Persisted so the file-hint gate can ask what this run linked rather
+        // than asking the worktree, which the agent writes.
+        if (env.linked.length > 0) {
+          this.envLinks = env.linked.map((l) => l.dir);
+          state = { ...state, envLinks: [...this.envLinks] };
+          await stateStore.write(state);
         }
         await startup(
           "environment",
@@ -4112,6 +4122,7 @@ export class Orchestrator {
       activeCrewId: this.activeCrewId,
       sagaSupervisor: this.sagaSupervisor,
       unattended: this.unattended,
+      envLinks: this.envLinks,
       enforceSpendCap: (ctx) => this.budgetGovernor.enforceSpendCap(ctx),
       // Resolve-and-cache on the orchestrator: the same catalog cache real
       // turns use, retried on the next turn if resolution failed (null).

@@ -53,6 +53,9 @@ import type { ResolvedCatalog } from "../../providers/provider-apply.js";
  *  and are reached through the two callbacks. */
 export interface SagaTurnDeps {
   projectRoot: string;
+  /** Relative dirs this run linked from the project into the worktree; the
+   *  file-hint gate grants the project fallback only under one of these. */
+  envLinks: readonly string[];
   config: ProjectConfig;
   /** The run's task text (the saga's goal). */
   goal: string;
@@ -330,6 +333,7 @@ export async function runSagaEnhanceTurn(
       const reads = await readFreshFileReads({
         worktreePath: input.worktreePath,
         projectRoot: deps.projectRoot,
+        envLinks: deps.envLinks,
         fileHints: hints,
       }).catch(() => []);
       freshRead = reads
