@@ -701,20 +701,56 @@ export async function importFlowFromUrl(input: {
   });
 }
 
+/** Resolve a hostname to addresses. Injectable so a caller (a test, or a
+ *  process with its own resolver) is not forced onto the system one. */
+export type HostResolver = (hostname: string) => Promise<string[]>;
+
+/** How long the SSRF check will wait for a name to resolve before failing
+ *  closed. `dns.lookup` takes no AbortSignal and the fetch timeout is armed
+ *  AFTER the check, so without this the guard's "bounded by time" promise did
+ *  not cover resolution: a hostile redirect chain could hang the caller for
+ *  MAX hops times the resolver's own timeout, with no cancellation. */
+export const HOST_RESOLVE_TIMEOUT_MS = 5_000;
+
+const systemResolver: HostResolver = async (hostname) => {
+  const addrs = await dns.lookup(hostname, { all: true });
+  return addrs.map((a) => a.address);
+};
+
 /** Resolve a hostname and return true if it (or any literal it already is)
- *  points at a blocked address range. Fail-closed: a resolution error blocks. */
-async function isBlockedFetchHost(hostname: string): Promise<boolean> {
-  if (net.isIP(hostname)) return isBlockedIp(hostname);
+ *  points at a blocked address range. Fail-closed: a resolution error, an empty
+ *  answer, or a resolver that does not answer in time all block.
+ *
+ *  This is the single implementation. guarded-fetch re-exports it rather than
+ *  keeping its own copy: two hand-maintained SSRF host checks drift, and the
+ *  one that drifts is the one nobody is looking at. */
+export async function isBlockedFetchHost(
+  hostname: string,
+  opts: { resolveHost?: HostResolver; timeoutMs?: number } = {},
+): Promise<boolean> {
+  const resolveHost = opts.resolveHost ?? systemResolver;
+  const timeoutMs = opts.timeoutMs ?? HOST_RESOLVE_TIMEOUT_MS;
+  const host = hostname.replace(/^\[|\]$/g, "");
+  if (net.isIP(host)) return isBlockedIp(host);
   // Reject obvious internal names outright.
-  const lower = hostname.toLowerCase();
+  const lower = host.toLowerCase();
   if (lower === "localhost" || lower.endsWith(".localhost") || lower.endsWith(".internal")) {
     return true;
   }
+  let timer: NodeJS.Timeout | undefined;
   try {
-    const addrs = await dns.lookup(hostname, { all: true });
+    const addrs = await Promise.race([
+      resolveHost(host),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("host resolution timed out")), timeoutMs);
+        timer.unref?.();
+      }),
+    ]);
     if (addrs.length === 0) return true;
-    return addrs.some((a) => isBlockedIp(a.address));
+    return addrs.some((a) => isBlockedIp(a));
   } catch {
-    return true; // can't resolve → don't fetch
+    return true; // can't resolve, or too slow -> don't fetch
+  } finally {
+    clearTimeout(timer);
   }
 }

@@ -7,10 +7,16 @@ import { fetchGuardedText } from "../src/core/guarded-fetch.js";
  * walked straight past a check that had already passed. Redirects are followed
  * by hand now and every hop is re-checked.
  *
- * `example.com` and `www.iana.org` are used because the guard resolves the host
- * and fails closed on a resolution error: an invented name would be refused
- * before any of this logic ran, and the test would pass without testing it.
+ * The guard resolves every host and fails closed on a resolution error, so a
+ * name has to resolve to something public for any of this logic to run. The
+ * resolver is INJECTED rather than left on the system one: reaching real DNS
+ * made this file fail offline, and it hung for 20s under a loaded suite because
+ * `dns.lookup` takes no AbortSignal and the fetch timeout is armed after the
+ * check. That hang was the bug report for HOST_RESOLVE_TIMEOUT_MS.
  */
+
+/** Every hostname these tests use is public. */
+const publicResolver = async () => ["93.184.216.34"];
 type FakeRes = {
   ok: boolean;
   status: number;
@@ -39,12 +45,29 @@ function scriptedFetch(script: Record<string, { status: number; location?: strin
 }
 
 describe("fetchGuardedText - redirects", () => {
+  it("fails closed when the resolver does not answer in time", async () => {
+    const { impl, asked } = scriptedFetch({
+      "https://slow.example.com/x.yml": { status: 200, body: "id: leaked" },
+    });
+    const res = await fetchGuardedText({
+      url: "https://slow.example.com/x.yml",
+      fetchImpl: impl as never,
+      // Never settles. Before the deadline the guard waited on this forever:
+      // the fetch timeout is armed after the check, so nothing could cancel it.
+      resolveHost: () => new Promise<string[]>(() => {}),
+      resolveTimeoutMs: 40,
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toContain("SSRF guard");
+    expect(asked).toEqual([]);
+  });
+
   it("refuses a redirect from a public host to loopback", async () => {
     const { impl, asked } = scriptedFetch({
       "https://example.com/flow.yml": { status: 302, location: "http://127.0.0.1:4317/api/runs" },
       "http://127.0.0.1:4317/api/runs": { status: 200, body: "SECRET-LOCAL-DATA" },
     });
-    const res = await fetchGuardedText({ url: "https://example.com/flow.yml", fetchImpl: impl as never });
+    const res = await fetchGuardedText({ resolveHost: publicResolver, url: "https://example.com/flow.yml", fetchImpl: impl as never });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.reason).toContain("127.0.0.1");
     // The loopback hop was never requested.
@@ -56,7 +79,7 @@ describe("fetchGuardedText - redirects", () => {
       "https://example.com/a.yml": { status: 301, location: "https://www.iana.org/b.yml" },
       "https://www.iana.org/b.yml": { status: 200, body: "id: moved" },
     });
-    const res = await fetchGuardedText({ url: "https://example.com/a.yml", fetchImpl: impl as never });
+    const res = await fetchGuardedText({ resolveHost: publicResolver, url: "https://example.com/a.yml", fetchImpl: impl as never });
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.text).toBe("id: moved");
   });
@@ -65,7 +88,7 @@ describe("fetchGuardedText - redirects", () => {
     const { impl } = scriptedFetch({
       "https://example.com/x": { status: 302, location: "https://example.com/x" },
     });
-    const res = await fetchGuardedText({ url: "https://example.com/x", fetchImpl: impl as never });
+    const res = await fetchGuardedText({ resolveHost: publicResolver, url: "https://example.com/x", fetchImpl: impl as never });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.reason).toContain("Too many redirects");
   });
@@ -74,7 +97,7 @@ describe("fetchGuardedText - redirects", () => {
     const { impl } = scriptedFetch({
       "https://example.com/j": { status: 302, location: "file:///etc/passwd" },
     });
-    const res = await fetchGuardedText({ url: "https://example.com/j", fetchImpl: impl as never });
+    const res = await fetchGuardedText({ resolveHost: publicResolver, url: "https://example.com/j", fetchImpl: impl as never });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.reason).toContain("non-http");
   });

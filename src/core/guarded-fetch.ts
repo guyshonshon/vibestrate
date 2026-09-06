@@ -5,36 +5,25 @@
 // bounded by size + time. Reuses the IP block-list from flow-portability so the
 // two outbound paths share one rule set. Injectable fetch for tests.
 
-import dns from "node:dns/promises";
-import net from "node:net";
-import { isBlockedIp, type FetchImpl } from "../flows/runtime/flow-portability.js";
+import {
+  isBlockedFetchHost,
+  type FetchImpl,
+  type HostResolver,
+} from "../flows/runtime/flow-portability.js";
 
 export type GuardedFetchResult =
   | { ok: true; text: string }
   | { ok: false; reason: string };
 
 /** Resolve a hostname and report whether it points at a blocked range.
- *  Fail-closed: a resolution error blocks. Exported so the token-bearing
- *  publish POST can reuse the exact same SSRF rule set. */
-export async function isFetchHostBlocked(hostname: string): Promise<boolean> {
-  const host = hostname.replace(/^\[|\]$/g, "");
-  if (net.isIP(host)) return isBlockedIp(host);
-  const lower = host.toLowerCase();
-  if (
-    lower === "localhost" ||
-    lower.endsWith(".localhost") ||
-    lower.endsWith(".internal")
-  ) {
-    return true;
-  }
-  try {
-    const addrs = await dns.lookup(host, { all: true });
-    if (addrs.length === 0) return true;
-    return addrs.some((a) => isBlockedIp(a.address));
-  } catch {
-    return true;
-  }
-}
+ *  Fail-closed on an error, an empty answer or a slow resolver. Exported so the
+ *  token-bearing publish POST reuses the exact same SSRF rule set.
+ *
+ *  A re-export, not a second implementation: this file used to carry its own
+ *  copy of the check, character-for-character the same as the flow importer's,
+ *  which is how the two outbound paths would have drifted apart. */
+export const isFetchHostBlocked = isBlockedFetchHost;
+export type { HostResolver };
 
 /**
  * How many hops a guarded fetch will follow before giving up.
@@ -70,6 +59,12 @@ export async function fetchGuardedText(input: {
   /** Skip the SSRF host check. Only a local CLI (user typed the URL) sets this;
    *  the HTTP API never does. */
   allowPrivateHosts?: boolean;
+  /** Name resolver for the SSRF check. Injectable for the same reason
+   *  `fetchImpl` is: a test that reaches the real resolver is a test that
+   *  fails offline and hangs when the network is slow. */
+  resolveHost?: HostResolver;
+  /** Deadline for ONE name resolution. Defaults to HOST_RESOLVE_TIMEOUT_MS. */
+  resolveTimeoutMs?: number;
 }): Promise<GuardedFetchResult> {
   const maxBytes = input.maxBytes ?? 512 * 1024;
   const timeoutMs = input.timeoutMs ?? 10_000;
@@ -83,7 +78,7 @@ export async function fetchGuardedText(input: {
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     return { ok: false, reason: `Only http(s) URLs are allowed (got ${parsed.protocol}).` };
   }
-  if (!input.allowPrivateHosts && (await isFetchHostBlocked(parsed.hostname))) {
+  if (!input.allowPrivateHosts && (await isFetchHostBlocked(parsed.hostname, { resolveHost: input.resolveHost, timeoutMs: input.resolveTimeoutMs }))) {
     return {
       ok: false,
       reason: `Refusing to fetch "${parsed.hostname}" - it resolves to a private/loopback address (SSRF guard).`,
@@ -117,7 +112,7 @@ export async function fetchGuardedText(input: {
         if (next.protocol !== "https:" && next.protocol !== "http:") {
           return { ok: false, reason: `Redirect to a non-http(s) URL (${next.protocol}).` };
         }
-        if (!input.allowPrivateHosts && (await isFetchHostBlocked(next.hostname))) {
+        if (!input.allowPrivateHosts && (await isFetchHostBlocked(next.hostname, { resolveHost: input.resolveHost, timeoutMs: input.resolveTimeoutMs }))) {
           return {
             ok: false,
             reason: `Refusing to follow a redirect to "${next.hostname}" - it resolves to a private/loopback address (SSRF guard).`,
