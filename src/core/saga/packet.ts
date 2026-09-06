@@ -17,7 +17,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { readText, pathExists } from "../../utils/fs.js";
 import { isSecretLikePath, redactSecretsInText } from "../diff-service.js";
-import { resolveSafePath, buildProjectRoots } from "../path-guard.js";
+import { resolveSafePath, type AllowedRoot } from "../path-guard.js";
 import { renderInvariantsSection } from "./saga-supervisor.js";
 
 /** One step's view, as the packet needs it. Mirrors the saga step fields on a
@@ -186,7 +186,7 @@ export async function readFreshFileReads(input: {
    * so every nested link the linker creates (`packages/<name>/node_modules`) was
    * refused, dropping hints silently.
    */
-  envLinks?: readonly string[];
+  envLinks: readonly string[];
   /** The project root. Required for containment, because a run worktree is a
    *  SIBLING of the project (`git.worktreeDir` defaults to
    *  `../.vibestrate-worktrees`) and its env dirs are SYMLINKS back into the
@@ -201,33 +201,64 @@ export async function readFreshFileReads(input: {
   // project's. `resolveSafePath` still proves real containment inside whichever
   // root matches, so a link out of BOTH roots stays refused.
   /**
-   * Which roots may answer ONE hint.
+   * Where ONE hint may resolve: a root, and the path to resolve inside it.
    *
-   * The project is a fallback so a hint through a linked environment directory
-   * resolves: linkWorktreeEnvironment symlinks node_modules, .venv and nested
-   * packages/<x>/node_modules back into the project, and a worktree is a
-   * sibling of it, so those escape the worktree root by construction. An
-   * unconditional fallback would make every project file reachable - .git and
-   * other runs' artifacts included - which is not what a step hint is for.
+   * The worktree always answers. A hint through a linked environment directory
+   * cannot be answered there, because linkWorktreeEnvironment symlinks
+   * node_modules, .venv and nested packages/<x>/node_modules back into the
+   * project and a worktree is a sibling of it, so those leave the worktree root
+   * by construction. That case gets a SECOND root.
    *
-   * The fallback is earned by the RUN'S OWN RECORD of what it linked. Asking
-   * the worktree's disk instead was defeated by one `ln -s`, because the agent
-   * writes the worktree.
+   * That second root is the linked directory itself, never the project root.
+   * The link is what was granted, so the link is the whole grant. Widening it
+   * to the project made every project file reachable through one symlink
+   * planted INSIDE the linked directory - and a write-capable seat can plant
+   * one, because writing through a linked dir into the project's env dir is a
+   * documented boundary of the linking feature (see git/worktree-env.ts). A
+   * `node_modules/x -> ../.git/config` was approved that way, which is the
+   * exact file this gate exists to refuse.
+   *
+   * The root is built from the PROJECT's copy, which is what the linker points
+   * at (its `target` is always `<projectRoot>/<dir>`). Reading it out of the
+   * worktree would ask the agent's own disk what the link means.
+   *
+   * Which dirs are linked comes from the RUN'S OWN RECORD. Asking the
+   * worktree's disk instead was defeated by one `ln -s`.
+   *
+   * Required, not optional: a caller that forgot it would compile, default to
+   * none, and drop every hint through a linked directory in silence - which is
+   * a bug this gate has already had once.
    */
-  const linkedDirs = (input.envLinks ?? []).map((dir) => dir.replace(/\\/g, "/").replace(/\/+$/, ""));
-  const worktreeOnly = [
-    { kind: "worktree" as const, absolutePath: worktreePath, label: "run worktree" },
-  ];
-  const rootsFor = (relPath: string) => {
+  const linkedDirs = input.envLinks
+    .map((dir) => dir.replace(/\\/g, "/").replace(/\/+$/, ""))
+    .filter((dir) => dir !== "" && dir !== "." && !dir.startsWith("/"));
+  type Attempt = { root: AllowedRoot; rel: string };
+  const attemptsFor = (relPath: string): Attempt[] => {
+    const attempts: Attempt[] = [
+      {
+        root: { kind: "worktree", absolutePath: worktreePath, label: "run worktree" },
+        rel: relPath,
+      },
+    ];
     // Segment-prefix, not first-segment: `packages/app/node_modules` is a dir
     // the linker really creates, and a first-segment test refused every hint
-    // under one.
-    const under = linkedDirs.some(
-      (dir) => relPath === dir || relPath.startsWith(dir + "/"),
-    );
-    return under
-      ? buildProjectRoots({ projectRoot, worktreePath, worktreeFirst: true })
-      : worktreeOnly;
+    // under one. Longest match wins, so a nested link is scoped to itself
+    // rather than to a shorter one that also matches.
+    const dir = linkedDirs
+      .filter((d) => relPath === d || relPath.startsWith(d + "/"))
+      .sort((a, b) => b.length - a.length)[0];
+    if (dir !== undefined) {
+      const rest = relPath === dir ? "." : relPath.slice(dir.length + 1);
+      attempts.push({
+        root: {
+          kind: "project",
+          absolutePath: path.join(projectRoot, dir),
+          label: `linked ${dir}`,
+        },
+        rel: rest,
+      });
+    }
+    return attempts;
   };
   const out: StepPacketFileRead[] = [];
   for (const hint of fileHints) {
@@ -257,9 +288,9 @@ export async function readFreshFileReads(input: {
     // against the project, which is the correct answer and cannot be reached by
     // handing both roots to one call.
     let resolved: string | null = null;
-    for (const root of rootsFor(normalized)) {
+    for (const attempt of attemptsFor(normalized)) {
       try {
-        const safe = await resolveSafePath(normalized, [root]);
+        const safe = await resolveSafePath(attempt.rel, [attempt.root]);
         if (safe.isSecretLike) break;
         // The existence test belongs INSIDE the loop: a root that contains the
         // path but holds no such file must not consume the hint, or the run's

@@ -51,10 +51,13 @@ fi
 # on, so a commit can sit on main, fully green to every gate anyone looks at,
 # and be broken on Windows. A tag was cut that way on 2026-09-05.
 #
-# Checked here so a bad tag is never created; the release workflow re-checks the
-# tag's own commit and refuses to publish, which is the part that actually
-# protects the registry. gh missing is a warning rather than a stop: the
-# workflow gate still holds, and this script has no other dependency on it.
+# This checks HEAD, which is the PARENT of what gets tagged: `npm version`
+# below makes a fresh `release: vX.Y.Z` commit and tags that. So this proves the
+# code being released is green on Windows, not the exact commit the tag names.
+# The workflow gate checks the tag's own commit and is what actually protects
+# the registry; this one just stops a tag you would otherwise have to delete.
+# gh missing is a warning rather than a stop: the workflow gate still holds, and
+# this script has no other dependency on gh.
 if command -v gh >/dev/null 2>&1; then
   echo "→ Checking CI (Windows) on $(git rev-parse --short HEAD)…"
   WIN_SHA="$(git rev-parse HEAD)"
@@ -77,7 +80,8 @@ if command -v gh >/dev/null 2>&1; then
       # The API answers with nulls when no run exists for this commit yet.
       echo "✗ No CI (Windows) run for this commit yet."
       echo "  Wait for it to appear and finish, or start one:"
-      echo "    gh workflow run ci-windows.yml --ref $WIN_SHA"
+      # workflow_dispatch takes a branch or tag NAME, never a raw SHA.
+      echo "    gh workflow run ci-windows.yml --ref main"
       exit 1
       ;;
     *)

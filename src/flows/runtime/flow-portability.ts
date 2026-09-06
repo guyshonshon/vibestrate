@@ -597,13 +597,13 @@ export async function importFlowFromUrl(input: {
 
   if (!input.allowPrivateHosts) {
     const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
-    const block = await isBlockedFetchHost(hostname);
-    if (block) {
+    const verdict = await checkFetchHost(hostname);
+    if (verdict !== "ok") {
       return {
         ok: false,
         status: 400,
         reasons: [
-          `Refusing to fetch from "${hostname}" - it resolves to a private/loopback address (SSRF guard).`,
+          hostRefusalReason(hostname, verdict, "fetch from"),
         ],
       };
     }
@@ -645,12 +645,13 @@ export async function importFlowFromUrl(input: {
       }
       if (!input.allowPrivateHosts) {
         const nextHost = next.hostname.replace(/^\[|\]$/g, "");
-        if (await isBlockedFetchHost(nextHost)) {
+        const nextVerdict = await checkFetchHost(nextHost);
+        if (nextVerdict !== "ok") {
           return {
             ok: false,
             status: 400,
             reasons: [
-              `Refusing to follow a redirect to "${nextHost}" - it resolves to a private/loopback address (SSRF guard).`,
+              hostRefusalReason(nextHost, nextVerdict, "follow a redirect to"),
             ],
           };
         }
@@ -717,40 +718,78 @@ const systemResolver: HostResolver = async (hostname) => {
   return addrs.map((a) => a.address);
 };
 
-/** Resolve a hostname and return true if it (or any literal it already is)
+/**
+ * Why a host was refused. Every non-"ok" verdict blocks; they differ only in
+ * what is TRUE about the host, which is what the message must say. A single
+ * boolean made a slow resolver report "resolves to a private/loopback address",
+ * which is an assertion about the host that nothing checked - and `dns.lookup`
+ * uses the OS resolver, whose default is seconds per nameserver with retries,
+ * so one dead nameserver made every guarded fetch say it.
+ */
+export type HostVerdict = "ok" | "blocked" | "unresolved" | "timeout";
+
+/** The one place a refused host is worded, so the four call sites cannot
+ *  describe the same verdict differently. */
+export function hostRefusalReason(
+  hostname: string,
+  verdict: Exclude<HostVerdict, "ok">,
+  what = "fetch",
+): string {
+  switch (verdict) {
+    case "blocked":
+      return `Refusing to ${what} "${hostname}" - it resolves to a private/loopback address (SSRF guard).`;
+    case "unresolved":
+      return `Refusing to ${what} "${hostname}" - it does not resolve (SSRF guard).`;
+    case "timeout":
+      return `Refusing to ${what} "${hostname}" - name resolution did not answer in time (SSRF guard).`;
+  }
+}
+
+/** Resolve a hostname and report whether it (or any literal it already is)
  *  points at a blocked address range. Fail-closed: a resolution error, an empty
- *  answer, or a resolver that does not answer in time all block.
+ *  answer, and a resolver that does not answer in time all refuse.
  *
- *  This is the single implementation. guarded-fetch re-exports it rather than
+ *  This is the single implementation. guarded-fetch delegates to it rather than
  *  keeping its own copy: two hand-maintained SSRF host checks drift, and the
  *  one that drifts is the one nobody is looking at. */
-export async function isBlockedFetchHost(
+export async function checkFetchHost(
   hostname: string,
   opts: { resolveHost?: HostResolver; timeoutMs?: number } = {},
-): Promise<boolean> {
+): Promise<HostVerdict> {
   const resolveHost = opts.resolveHost ?? systemResolver;
   const timeoutMs = opts.timeoutMs ?? HOST_RESOLVE_TIMEOUT_MS;
   const host = hostname.replace(/^\[|\]$/g, "");
-  if (net.isIP(host)) return isBlockedIp(host);
+  if (net.isIP(host)) return isBlockedIp(host) ? "blocked" : "ok";
   // Reject obvious internal names outright.
   const lower = host.toLowerCase();
   if (lower === "localhost" || lower.endsWith(".localhost") || lower.endsWith(".internal")) {
-    return true;
+    return "blocked";
   }
+  // A budget already spent is a timeout, not an excuse to skip the check.
+  if (timeoutMs <= 0) return "timeout";
   let timer: NodeJS.Timeout | undefined;
+  const TIMED_OUT = Symbol("timeout");
   try {
     const addrs = await Promise.race([
       resolveHost(host),
       new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("host resolution timed out")), timeoutMs);
+        timer = setTimeout(() => reject(TIMED_OUT), timeoutMs);
         timer.unref?.();
       }),
     ]);
-    if (addrs.length === 0) return true;
-    return addrs.some((a) => isBlockedIp(a));
-  } catch {
-    return true; // can't resolve, or too slow -> don't fetch
+    if (addrs.length === 0) return "unresolved";
+    return addrs.some((a) => isBlockedIp(a)) ? "blocked" : "ok";
+  } catch (err) {
+    return err === TIMED_OUT ? "timeout" : "unresolved";
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Boolean form, for a caller that only branches on refuse-or-not. */
+export async function isBlockedFetchHost(
+  hostname: string,
+  opts: { resolveHost?: HostResolver; timeoutMs?: number } = {},
+): Promise<boolean> {
+  return (await checkFetchHost(hostname, opts)) !== "ok";
 }

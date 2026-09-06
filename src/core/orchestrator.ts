@@ -4120,9 +4120,12 @@ export class Orchestrator {
       activeCrewId: this.activeCrewId,
       sagaSupervisor: this.sagaSupervisor,
       unattended: this.unattended,
-      // From the run's durable state, never a field mirroring it: a resumed
-      // run does not re-link, so a mirror would be empty while the record is
-      // not, and every hint through a linked directory would be dropped.
+      // From the run's durable state, never a field mirroring it. The
+      // checklist band already read it here, and one fact with two readers and
+      // two sources is a divergence waiting for whichever of them stops being
+      // updated first. Every run currently builds its own worktree and links
+      // fresh, so the mirror was not yet wrong - it was one skipped assignment
+      // away from being wrong, silently, in the direction of dropping hints.
       envLinks: state.envLinks,
       enforceSpendCap: (ctx) => this.budgetGovernor.enforceSpendCap(ctx),
       // Resolve-and-cache on the orchestrator: the same catalog cache real

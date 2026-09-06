@@ -152,6 +152,7 @@ describe("readFreshFileReads", () => {
     await fs.writeFile(path.join(dir, rel), "export const NOW = 42;");
 
     const reads = await readFreshFileReads({
+      envLinks: [],
       worktreePath: dir,
       projectRoot: dir,
       fileHints: [rel],
@@ -164,6 +165,7 @@ describe("readFreshFileReads", () => {
   it("skips missing files and refuses paths that escape the worktree", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-packet-read2-"));
     const reads = await readFreshFileReads({
+      envLinks: [],
       worktreePath: dir,
       projectRoot: dir,
       fileHints: ["does/not/exist.ts", "../escape.ts", "/etc/passwd"],
@@ -173,13 +175,16 @@ describe("readFreshFileReads", () => {
 
   it("returns [] for empty fileHints", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-packet-read3-"));
-    expect(await readFreshFileReads({ worktreePath: dir, projectRoot: dir, fileHints: [] })).toEqual([]);
+    expect(
+      await readFreshFileReads({ worktreePath: dir, projectRoot: dir, envLinks: [], fileHints: [] }),
+    ).toEqual([]);
   });
 
   it("does not read secret-like paths (e.g. .env) even when hinted", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-packet-read4-"));
     await fs.writeFile(path.join(dir, ".env"), "SECRET=hunter2");
     const reads = await readFreshFileReads({
+      envLinks: [],
       worktreePath: dir,
       projectRoot: dir,
       fileHints: [".env"],
@@ -211,6 +216,7 @@ describe("readFreshFileReads - containment", () => {
       await fs.symlink(path.join(outside, "id_rsa"), path.join(wt, "innocent.md"));
 
       const reads = await readFreshFileReads({
+        envLinks: [],
         worktreePath: wt,
         projectRoot: wt,
         fileHints: ["ok.md", "innocent.md", "../outside/id_rsa"],
@@ -280,6 +286,7 @@ describe("readFreshFileReads - containment", () => {
 
       const abs = path.join(proj, ".vibestrate", "runs", "other", "notes.md");
       const reads = await readFreshFileReads({
+        envLinks: [],
         worktreePath: wt,
         projectRoot: proj,
         fileHints: ["ok.md", abs, path.relative(proj, abs)],
@@ -303,6 +310,7 @@ describe("readFreshFileReads - containment", () => {
       await fs.writeFile(path.join(wt, "ok.md"), "mine\n");
 
       const reads = await readFreshFileReads({
+        envLinks: [],
         worktreePath: wt,
         projectRoot: proj,
         fileHints: ["ok.md", path.join(proj, ".vibestrate", "runs", "other", "notes.md")],
@@ -328,6 +336,7 @@ describe("readFreshFileReads - containment", () => {
       await fs.writeFile(path.join(wt, "shared.md"), "WORKTREE COPY\n");
 
       const reads = await readFreshFileReads({
+        envLinks: [],
         worktreePath: wt,
         projectRoot: proj,
         fileHints: ["shared.md"],
@@ -365,6 +374,53 @@ describe("readFreshFileReads - containment", () => {
 
       expect(reads.map((r) => r.path)).toEqual(["ok.md"]);
       expect(JSON.stringify(reads)).not.toContain("OTHER-RUN");
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
+  // The linked dir is the whole grant. Widening it to the project root made
+  // every project file reachable through ONE symlink planted inside the linked
+  // directory, and a write-capable seat can plant one: writing through a linked
+  // dir into the project's env dir is a documented boundary of the linking
+  // feature. `node_modules/x -> ../.git/config` was approved that way.
+  it("refuses a symlink planted INSIDE a linked directory that points out of it", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-inlink-")));
+    try {
+      const proj = path.join(base, "proj");
+      const wt = path.join(base, ".vibestrate-worktrees", "run-1");
+      await fs.mkdir(path.join(proj, ".git"), { recursive: true });
+      await fs.mkdir(path.join(proj, ".vibestrate", "runs", "other"), { recursive: true });
+      await fs.mkdir(path.join(proj, "node_modules", "pkg"), { recursive: true });
+      await fs.mkdir(wt, { recursive: true });
+      await fs.writeFile(path.join(proj, ".git", "config"), "url = https://TOKEN-abc@github.com/x/y\n");
+      await fs.writeFile(path.join(proj, ".vibestrate", "runs", "other", "n.md"), "OTHER-RUN\n");
+      await fs.writeFile(path.join(proj, ".env"), "DB_PASSWORD=hunter2\n");
+      await fs.writeFile(path.join(proj, "node_modules", "pkg", "index.js"), "LEGIT\n");
+      await fs.symlink(path.join(proj, "node_modules"), path.join(wt, "node_modules"));
+      // Planted through the link, so they live in the project's own env dir.
+      await fs.symlink("../.git/config", path.join(proj, "node_modules", "gitcfg"));
+      await fs.symlink("../.vibestrate/runs/other/n.md", path.join(proj, "node_modules", "otherrun"));
+      await fs.symlink("../.env", path.join(proj, "node_modules", "cfg"));
+
+      const reads = await readFreshFileReads({
+        worktreePath: wt,
+        projectRoot: proj,
+        envLinks: ["node_modules"],
+        fileHints: [
+          "node_modules/pkg/index.js",
+          "node_modules/gitcfg",
+          "node_modules/otherrun",
+          "node_modules/cfg",
+          "node_modules/./cfg",
+        ],
+      });
+
+      expect(reads.map((r) => r.path)).toEqual(["node_modules/pkg/index.js"]);
+      const all = JSON.stringify(reads);
+      expect(all).not.toContain("TOKEN-abc");
+      expect(all).not.toContain("OTHER-RUN");
+      expect(all).not.toContain("hunter2");
     } finally {
       await fs.rm(base, { recursive: true, force: true });
     }
@@ -408,7 +464,12 @@ describe("readFreshFileReads - containment", () => {
     try {
       await fs.mkdir(path.join(base, "sub"), { recursive: true });
       await fs.writeFile(path.join(base, "sub", "notes.md"), "hello\n");
-      const reads = await readFreshFileReads({ worktreePath: base, projectRoot: base, fileHints: ["sub/notes.md"] });
+      const reads = await readFreshFileReads({
+        worktreePath: base,
+        projectRoot: base,
+        envLinks: [],
+        fileHints: ["sub/notes.md"],
+      });
       expect(reads).toHaveLength(1);
       expect(reads[0]!.content).toContain("hello");
     } finally {

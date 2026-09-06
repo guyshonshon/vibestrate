@@ -6,9 +6,11 @@
 // two outbound paths share one rule set. Injectable fetch for tests.
 
 import {
-  isBlockedFetchHost,
+  checkFetchHost,
+  hostRefusalReason,
   type FetchImpl,
   type HostResolver,
+  type HostVerdict,
 } from "../flows/runtime/flow-portability.js";
 
 export type GuardedFetchResult =
@@ -22,8 +24,13 @@ export type GuardedFetchResult =
  *  A re-export, not a second implementation: this file used to carry its own
  *  copy of the check, character-for-character the same as the flow importer's,
  *  which is how the two outbound paths would have drifted apart. */
-export const isFetchHostBlocked = isBlockedFetchHost;
-export type { HostResolver };
+export async function isFetchHostBlocked(
+  hostname: string,
+  opts: { resolveHost?: HostResolver; timeoutMs?: number } = {},
+): Promise<boolean> {
+  return (await checkFetchHost(hostname, opts)) !== "ok";
+}
+export type { HostResolver, HostVerdict };
 
 /**
  * How many hops a guarded fetch will follow before giving up.
@@ -63,11 +70,24 @@ export async function fetchGuardedText(input: {
    *  `fetchImpl` is: a test that reaches the real resolver is a test that
    *  fails offline and hangs when the network is slow. */
   resolveHost?: HostResolver;
-  /** Deadline for ONE name resolution. Defaults to HOST_RESOLVE_TIMEOUT_MS. */
+  /** Deadline for ONE name resolution. Capped by whatever is left of
+   *  `timeoutMs`, so the whole call stays inside the bound this function
+   *  promises. Defaults to HOST_RESOLVE_TIMEOUT_MS. */
   resolveTimeoutMs?: number;
 }): Promise<GuardedFetchResult> {
   const maxBytes = input.maxBytes ?? 512 * 1024;
   const timeoutMs = input.timeoutMs ?? 10_000;
+  // ONE deadline for the whole call. Each hop re-checks its host, and a
+  // resolution that is not bounded by the remaining budget turns a documented
+  // 10s limit into 10s of fetching plus MAX_GUARDED_REDIRECTS + 1 resolutions,
+  // every one of them driven by whoever writes the Location headers.
+  const startedAt = Date.now();
+  const remainingMs = () => timeoutMs - (Date.now() - startedAt);
+  const hostVerdict = (hostname: string): Promise<HostVerdict> =>
+    checkFetchHost(hostname, {
+      resolveHost: input.resolveHost,
+      timeoutMs: Math.min(input.resolveTimeoutMs ?? Infinity, remainingMs()),
+    });
 
   let parsed: URL;
   try {
@@ -78,18 +98,20 @@ export async function fetchGuardedText(input: {
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     return { ok: false, reason: `Only http(s) URLs are allowed (got ${parsed.protocol}).` };
   }
-  if (!input.allowPrivateHosts && (await isFetchHostBlocked(parsed.hostname, { resolveHost: input.resolveHost, timeoutMs: input.resolveTimeoutMs }))) {
-    return {
-      ok: false,
-      reason: `Refusing to fetch "${parsed.hostname}" - it resolves to a private/loopback address (SSRF guard).`,
-    };
+  if (!input.allowPrivateHosts) {
+    const verdict = await hostVerdict(parsed.hostname);
+    if (verdict !== "ok") {
+      return { ok: false, reason: hostRefusalReason(parsed.hostname, verdict) };
+    }
   }
 
   const fetchImpl = input.fetchImpl ?? (globalThis.fetch as unknown as FetchImpl);
   if (!fetchImpl) return { ok: false, reason: "No fetch implementation available." };
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  // What is LEFT of the budget, not a fresh copy of it: the host check above
+  // already spent part of it.
+  const timer = setTimeout(() => controller.abort(), Math.max(0, remainingMs()));
   try {
     let current = parsed;
     for (let hop = 0; ; hop++) {
@@ -112,11 +134,14 @@ export async function fetchGuardedText(input: {
         if (next.protocol !== "https:" && next.protocol !== "http:") {
           return { ok: false, reason: `Redirect to a non-http(s) URL (${next.protocol}).` };
         }
-        if (!input.allowPrivateHosts && (await isFetchHostBlocked(next.hostname, { resolveHost: input.resolveHost, timeoutMs: input.resolveTimeoutMs }))) {
-          return {
-            ok: false,
-            reason: `Refusing to follow a redirect to "${next.hostname}" - it resolves to a private/loopback address (SSRF guard).`,
-          };
+        if (!input.allowPrivateHosts) {
+          const verdict = await hostVerdict(next.hostname);
+          if (verdict !== "ok") {
+            return {
+              ok: false,
+              reason: hostRefusalReason(next.hostname, verdict, "follow a redirect to"),
+            };
+          }
         }
         current = next;
         continue;

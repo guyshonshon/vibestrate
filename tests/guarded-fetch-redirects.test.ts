@@ -58,7 +58,13 @@ describe("fetchGuardedText - redirects", () => {
       resolveTimeoutMs: 40,
     });
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.reason).toContain("SSRF guard");
+    // The message must say what is true. A single boolean verdict made this
+    // path claim the host "resolves to a private/loopback address", which
+    // nothing had checked.
+    if (!res.ok) {
+      expect(res.reason).toContain("name resolution did not answer in time");
+      expect(res.reason).not.toContain("private/loopback");
+    }
     expect(asked).toEqual([]);
   });
 

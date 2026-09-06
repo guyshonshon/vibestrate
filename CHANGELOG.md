@@ -5,16 +5,29 @@
 Three fixes to the guards that decide what a run may read and write. If you
 run repositories you do not control, take this one.
 
-- **The file-hint gate asks the run what it linked, not the worktree.** 0.4.3
-  said a hint resolves only inside the run's own directory unless the run linked
-  elsewhere itself. It decided that by asking the worktree whether the hint's
-  first directory was a symlink, and the run's own agent writes the worktree.
-  One `ln -s` named after a project directory handed back everything 0.4.3
-  claimed to have closed, `.git/config` and other runs' artifacts included. The
-  gate now consults the list the linker recorded when it created those links,
-  which nothing inside the run can forge. The same change fixes hints under a
-  nested `packages/<name>/node_modules`, which the first-directory test had been
-  refusing silently.
+- **A file hint reads inside the run's worktree, and inside the directories the
+  run linked in - nothing else.** 0.4.3 said that and did not do it. It decided
+  which hints had earned a look outside the worktree by asking the worktree
+  whether the hint's first directory was a symlink, and the run's own agent
+  writes the worktree, so one `ln -s` named after a project directory earned it.
+  Worse, what it earned was the whole project root, so even once that was fixed
+  a single symlink planted inside a linked directory still reached anywhere: a
+  run can write through a linked directory into the project's own copy of it,
+  which is a documented boundary of the linking feature, and
+  `node_modules/x -> ../.git/config` was approved by the fixed gate.
+
+  Both halves are closed now. Which directories count comes from the list the
+  linker recorded when it created the links, which nothing inside the run can
+  write. And a hint through one is proved to land inside THAT directory rather
+  than merely somewhere in your project. The files this was handing over include
+  `.git/config`, which carries credentials in remote URLs, other runs' stored
+  artifacts, and `.env` - whose contents are not caught by the secret redactor,
+  because that matches token shapes and a password is not one. Their bytes went
+  into the next step's prompt and into a durable run artifact. If you run
+  repositories you do not control, this is the fix to take.
+
+  The same change fixes hints under a nested `packages/<name>/node_modules`,
+  which the old first-directory test had been refusing in silence.
 
 - **A backslash in a filename is a filename, not a path separator.** On macOS
   and Linux a backslash is a perfectly legal character in a file name, and the
@@ -32,7 +45,10 @@ run repositories you do not control, take this one.
   per hop of a redirect chain. Resolution now has its own deadline and fails
   closed when it expires. The check itself existed twice, character for
   character, once for the flow importer and once for everything else; the
-  duplicate is gone, so the two outbound paths can no longer drift apart.
+  duplicate is gone, so the two outbound paths can no longer drift apart. A
+  refusal also says what is actually true now: a host that would not resolve, or
+  a resolver that did not answer, used to be reported as an address in private
+  space, which nothing had checked.
 
 ## 0.4.3
 

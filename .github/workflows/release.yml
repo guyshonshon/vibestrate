@@ -63,6 +63,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ github.sha }}
+          REF: ${{ github.ref_name }}
           REPO: ${{ github.repository }}
         run: |
           set -uo pipefail
@@ -96,7 +97,9 @@ jobs:
             if [ "$SECONDS" -ge "$DEADLINE" ]; then
               echo "No successful CI (Windows) run for $SHA after 40 minutes."
               echo "Failing closed: unverified on Windows is not the same as verified."
-              echo "Start one with:  gh workflow run ci-windows.yml --ref $SHA"
+              # workflow_dispatch takes a branch or tag NAME; a raw SHA is
+              # rejected with HTTP 422. On a tag push GITHUB_REF_NAME is the tag.
+              echo "Start one with:  gh workflow run ci-windows.yml --ref $REF"
               exit 1
             fi
             sleep 30
