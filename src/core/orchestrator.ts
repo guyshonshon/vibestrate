@@ -439,6 +439,24 @@ export class Orchestrator {
    *  stops, provider failures) can fire notifications without every call site
    *  threading the closure through. Null only before run() is called. */
   private notify: ((draft: NotificationDraft) => void) | null = null;
+  /**
+   * Writes started but not awaited, drained before `run()` resolves.
+   *
+   * Some writes cannot be awaited where they are started: a notification's
+   * local append happens before delivery is backgrounded, and an injection
+   * event is reported through a SYNCHRONOUS callback. Left untracked, those
+   * outlive the run - which reads as an ENOTEMPTY on Windows when a caller
+   * removes the run directory, and everywhere as a caller that is told the run
+   * finished and then reads records that are not all there yet.
+   *
+   * `track` is the one funnel. Gateway delivery still never blocks the run;
+   * that stays background inside the notification service.
+   */
+  private pendingWrites: Promise<unknown>[] = [];
+
+  private track(write: Promise<unknown>): void {
+    this.pendingWrites.push(write.catch(() => {}));
+  }
   /** Per-run budget enforcement (count/time ceilings + daily spend cap) and
    *  the mutable counters/override it owns. Built in the constructor so the
    *  counters live exactly as long as this run. */
@@ -728,6 +746,18 @@ export class Orchestrator {
   }
 
   async run(): Promise<OrchestratorOutput> {
+    try {
+      return await this.runInner();
+    } finally {
+      // Settle the run's own writes before the caller is told it is done.
+      // Never throws: each entry already carries its own catch.
+      const pending = this.pendingWrites;
+      this.pendingWrites = [];
+      await Promise.all(pending);
+    }
+  }
+
+  private async runInner(): Promise<OrchestratorOutput> {
     if (!(await isGitAvailable())) {
       throw new GitError("git is not available on PATH.");
     }
@@ -808,9 +838,11 @@ export class Orchestrator {
     });
     const notifications = new NotificationService(this.projectRoot);
     const notify = (draft: NotificationDraft): void => {
-      // Fire-and-forget: gateway delivery never blocks the orchestrator and
-      // never bubbles errors. Failed delivery is recorded as a receipt.
-      void notifications.notify(draft).catch(() => {});
+      // Non-blocking for the CALLER, but tracked: gateway delivery never
+      // blocks the orchestrator and never bubbles errors (delivery is
+      // backgrounded inside notify()), while the local append this starts is
+      // drained before run() resolves. Untracked, that append outlived the run.
+      this.track(notifications.notify(draft));
     };
     this.notify = notify;
     await artifactStore.init();
@@ -1652,11 +1684,13 @@ export class Orchestrator {
         task: this.task,
         engines: this.contextEngines(),
         onInjection: (event) => {
-          void input.eventLog.append({
-            type: event.type,
-            message: event.message,
-            data: event.data,
-          });
+          this.track(
+            input.eventLog.append({
+              type: event.type,
+              message: event.message,
+              data: event.data,
+            }),
+          );
         },
         // Preference-gate review must see the exact diff, not a summary, or it is
         // blind to the line-level violation. Only forced when this is a lensed
@@ -3297,11 +3331,13 @@ export class Orchestrator {
             task: this.task,
             engines: this.contextEngines(),
             onInjection: (event) => {
-              void input.eventLog.append({
-            type: event.type,
-            message: event.message,
-            data: event.data,
-          });
+              this.track(
+                input.eventLog.append({
+                  type: event.type,
+                  message: event.message,
+                  data: event.data,
+                }),
+              );
             },
             // Preference-gate review needs the exact diff (not a summary) on the
             // linear walk too. Only forced on a reviewer turn carrying preferences.
