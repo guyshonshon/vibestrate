@@ -171,6 +171,16 @@ describe("a policy set that did not fully load refuses the run", () => {
   // Only the fields runPreflightChecks reads; the gate under test is the policy
   // SET, so a full project scaffold would just add moving parts.
   const MINIMAL_CONFIG = {
+  // Preflight reads git settings (the env-link exposure warning); a fixture
+  // without them is not a config any loader would produce.
+  git: {
+    mainBranch: "main",
+    branchPrefix: "vibestrate/",
+    worktreeDir: "../.vibestrate-worktrees",
+    requireCleanMain: false,
+    linkEnvironment: "off",
+    snapshotRetentionRuns: 0,
+  },
     crews: {},
     permissions: { profiles: {} },
     commands: { validate: [] },

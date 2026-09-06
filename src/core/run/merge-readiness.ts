@@ -7,6 +7,28 @@
 // a non-read-only run, and never substitutes for validation/verification.
 
 import type { ReviewDecision, VerificationDecision } from "../state-machine.js";
+import type { ValidationSummary } from "../validation/validation-runner.js";
+
+/**
+ * Did validation actually clear this run?
+ *
+ * Nothing checked is not the same as everything passed. `ValidationSummary.failed`
+ * is computed by SUBTRACTING the count of commands that could not start, so a run
+ * in a bare worktree - no linked environment, a skipped env link, a missing
+ * virtualenv - produced `failed === 0` and merged on evidence it never gathered.
+ * The reviewer saw "Passed: 0, Failed: 0", which reads clean.
+ *
+ * `null` (validation never ran, or no commands are configured) stays a pass:
+ * there is nothing to check, which is a real answer. A PARTIAL run stays a pass
+ * too - some evidence is weak, not absent, and the count reaches the reviewer's
+ * prompt so the weakness is judged rather than hidden.
+ */
+export function validationSatisfied(summary: ValidationSummary | null): boolean {
+  if (summary === null) return true;
+  if (summary.failed > 0) return false;
+  // Every command that ran could not start: nothing was verified.
+  return !(summary.passed === 0 && summary.environment > 0);
+}
 
 export type ReviewSkipEvidence = {
   /** The skipWhen step the deterministic evaluator skipped. */

@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+- **An abort during a pause is no longer discarded.** Pausing wrote the paused
+  state as a whole object built from a read taken moments earlier, so an abort
+  landing in that window was overwritten. The run then resumed to whatever it
+  was doing before the pause and carried on, having silently dropped the abort.
+  Entering a pause is a locked read-modify-write now, and a run that reached a
+  terminal state in that window is reported as terminal instead of paused on
+  top of.
+
+- **A run that checked nothing no longer reads as a run that passed.** Validation
+  counts commands that could not start separately from commands that failed, and
+  the merge gate only looked at the failed count. So a run whose entire toolchain
+  was missing scored zero failures and reached `merge_ready` on evidence it never
+  gathered. Your reviewer was handed "Passed: 0, Failed: 0", which reads clean.
+  This was reachable without changing any setting: a branch that touches
+  dependencies trips the lockfile guard and the environment is not linked, and
+  every command then exits "command not found". A run where nothing ran now
+  blocks, and the count of commands that could not run is in the reviewer's
+  prompt as "Could not run", so a partly-checked run is judged rather than
+  rounded up.
+
+- **Runs say up front that a linked environment reaches your project.** Linking
+  `node_modules` and virtualenvs into the worktree is what lets your checks run
+  there, and it stays on by default, because turning it off silently costs every
+  run its checks. What was missing is that a link's parent is your project root,
+  so a run that can write reaches your whole project through it. That now shows
+  as a warning before the run starts, next to the other preflight warnings, with
+  both ways to remove it and what each costs. Patch apply still refuses paths
+  beyond a link, so the diff you review remains only the worktree's work.
+
 ## 0.4.4
 
 Fixes to the guards that decide what a run may read and write, and a correction

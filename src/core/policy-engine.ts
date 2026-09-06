@@ -115,6 +115,37 @@ export async function runPreflightChecks(input: {
     });
   }
 
+  // Linking env dirs into the worktree is what lets validation commands run
+  // there, and it is on by default. The link is a SYMLINK, so its parent is the
+  // project root: `<worktree>/node_modules/..` is your project, reachable for
+  // reading and writing by any seat that can write. Patch apply refuses paths
+  // beyond a symlink, so the diff you review stays worktree-only; a direct
+  // write by the agent's own tools is not covered. Said here rather than in a
+  // run event because this is the surface a person actually reads.
+  if (
+    config.git.linkEnvironment !== "off" &&
+    config.policies.defaultPermissionMode !== "read-only"
+  ) {
+    const linkable: string[] = [];
+    for (const dir of ["node_modules", ".venv", "venv"]) {
+      if (await pathExists(path.join(projectRoot, dir))) linkable.push(dir);
+    }
+    if (linkable.length > 0) {
+      warnings.push({
+        code: "ENV_LINK_WRITABLE",
+        message:
+          `${linkable.join(", ")} will be linked into the run's worktree so your checks can run there. ` +
+          "A link's parent is your project, so a run that can write reaches your whole project through it, " +
+          "tracked files included. Patch apply still refuses paths beyond a link, so the diff you review is " +
+          "only the worktree's. Two ways to remove the reach: `vibe config set git.linkEnvironment off`, " +
+          "which also stops your checks resolving their toolchain in the worktree; or " +
+          "`vibe config set execution.backend docker`, which mounts the worktree and nothing else, so the " +
+          "link dangles inside the container and the image has to carry the toolchain itself. Your checks " +
+          "keep working under docker either way, because they run on the host.",
+      });
+    }
+  }
+
   const unbounded = describeUnboundedRun({
     config,
     unattended: input.unattended ?? false,

@@ -150,8 +150,16 @@ function renderValidation(results: ValidationResults | null | undefined): string
   if (results.commands.length === 0) {
     lines.push(`No validation commands configured.`);
   } else {
+    // The count of commands that COULD NOT RUN belongs in the summary line.
+    // Without it, a run where the toolchain was missing reads as
+    // "Passed: 0, Failed: 0" - indistinguishable from a clean pass, to a
+    // reviewer whose job is to weigh exactly this.
     lines.push(
-      `Total: ${results.summary.total}, Passed: ${results.summary.passed}, Failed: ${results.summary.failed}`,
+      `Total: ${results.summary.total}, Passed: ${results.summary.passed}, ` +
+        `Failed: ${results.summary.failed}` +
+        (results.summary.environment > 0
+          ? `, Could not run: ${results.summary.environment}`
+          : ""),
       ``,
     );
     for (const c of results.commands) {

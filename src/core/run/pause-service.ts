@@ -197,13 +197,30 @@ export async function applyPauseIfRequested(input: {
 
   // Enter paused. Remember the status we were entering so resume knows
   // where to round-trip back to (mirrors approvalRequestedFromStatus).
-  const pausedFrom: RunStatus = onDisk.status as RunStatus;
-  const paused = applyTransition(onDisk, "paused");
-  const pausedWithMemo: RunState = {
-    ...paused,
-    pausedAtStatus: pausedFrom,
-  };
-  await input.store.write(pausedWithMemo);
+  //
+  // Through `mutate`, not `write`, for the same reason the orphan-clear above
+  // uses it: a whole-object write is built from a state read BEFORE this point,
+  // so an abort landing in the window between that read and this write is
+  // clobbered. The run then resumed to its pre-pause status and carried on,
+  // having silently discarded the abort. mutate re-reads inside the lock, and a
+  // run that reached terminal in that window is returned as terminal instead of
+  // being paused on top of.
+  const entered = await input.store.mutate<RunState | null>((fresh) => {
+    if (isTerminal(fresh.status as RunStatus)) return { next: null, result: null };
+    const pausedFrom: RunStatus = fresh.status as RunStatus;
+    const next: RunState = {
+      ...applyTransition(fresh, "paused"),
+      pausedAtStatus: pausedFrom,
+    };
+    return { next, result: next };
+  });
+  if (entered === null) {
+    // Lost the race to a terminal transition; hand that back so the
+    // orchestrator exits through its normal terminal path.
+    return await input.store.read();
+  }
+  const pausedWithMemo = entered;
+  const pausedFrom = entered.pausedAtStatus as RunStatus;
   await input.events.append({
     type: "run.paused",
     message: `Run paused at ${pausedFrom}.`,

@@ -1278,7 +1278,13 @@ export class Orchestrator {
             type: "git.worktree.env",
             message:
               env.linked.length > 0
-                ? `Linked ${env.linked.map((l) => l.dir).join(", ")} into the worktree.`
+                ? `Linked ${env.linked.map((l) => l.dir).join(", ")} into the worktree.` +
+                  // The container mounts the worktree and nothing else, so a
+                  // link into the project dangles inside it. Validation still
+                  // resolves because it runs on the host.
+                  (prep.exec
+                    ? " Not visible inside the container (it mounts the worktree only); the image must carry the toolchain. Validation runs on the host and still resolves."
+                    : "")
                 : `No environment linked: ${env.skipped
                     .map((s) => `${s.dir} (${s.reason})`)
                     .join("; ")}.`,

@@ -217,6 +217,42 @@ describe("applyPauseIfRequested", () => {
     expect(after.status).toBe("aborted");
   });
 
+  // The race the timer-based test above only hits under load, made
+  // deterministic by landing the abort INSIDE the window: between
+  // applyPauseIfRequested reading state and writing the paused state. A
+  // whole-object write clobbered the abort, and the poll then saw a cleared
+  // pause flag and resumed to the pre-pause status, discarding the abort.
+  it("does not pause on top of an abort that landed while it was deciding", async () => {
+    let s = await store.read();
+    s = applyTransition(s, "planning");
+    s = applyTransition(s, "planned");
+    await store.write(s);
+    await requestPause(store, events);
+
+    // A store whose first read hands back the pausable state and, as it
+    // returns, aborts the run on disk - exactly the interleaving.
+    let aborted = false;
+    const racing = Object.create(store) as RunStateStore;
+    racing.read = async () => {
+      const fresh = await RunStateStore.prototype.read.call(store);
+      if (!aborted) {
+        aborted = true;
+        await store.write(applyTransition(fresh, "aborted"));
+      }
+      return fresh;
+    };
+
+    const after = await applyPauseIfRequested({
+      state: await RunStateStore.prototype.read.call(store),
+      store: racing,
+      events,
+      pollMs: 5,
+    });
+
+    expect(after.status).toBe("aborted");
+    expect((await store.read()).status).toBe("aborted");
+  });
+
   it("clears an orphaned pauseRequested when the run is already terminal", async () => {
     // Sneak past requestPause's guard by writing the flag directly while
     // the run is still pausable, then drive it to terminal. Real-world

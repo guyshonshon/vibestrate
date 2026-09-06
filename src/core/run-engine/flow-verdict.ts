@@ -20,7 +20,7 @@ import {
   type ReviewDecision,
   type VerificationDecision,
 } from "../state-machine.js";
-import { computeMergeReady, type ReviewSkipEvidence } from "../run/merge-readiness.js";
+import { validationSatisfied, computeMergeReady, type ReviewSkipEvidence } from "../run/merge-readiness.js";
 import { deriveTerminalCause, type TerminalCause } from "../run/terminal-cause.js";
 import {
   interventionNotification,
@@ -256,8 +256,9 @@ export async function finalizeFlowVerdict(
     deps.readOnly && input.reviewDecision === "CHANGES_REQUESTED"
       ? "BLOCKED"
       : input.reviewDecision;
-  const validationPassed =
-    input.lastValidation === null || input.lastValidation.summary.failed === 0;
+  // Through the tested predicate, never inline: a vacuous pass (every command
+  // could not start, so `failed` was 0) used to reach merge_ready from here.
+  const validationPassed = validationSatisfied(input.lastValidation?.summary ?? null);
   // A flow only requires a passing verification if it actually has a verify
   // (summary-turn) step that ran. Minimal flows (e.g. coder + reviewer with no
   // verify) reach merge_ready on an APPROVED review + passing validation.
