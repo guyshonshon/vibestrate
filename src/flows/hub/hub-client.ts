@@ -13,7 +13,8 @@
 
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { fetchGuardedText, isFetchHostBlocked } from "../../core/guarded-fetch.js";
+import { fetchGuardedText } from "../../core/guarded-fetch.js";
+import { checkFetchHost, hostRefusalReason } from "../runtime/flow-portability.js";
 import {
   importFlowFromText,
   type FlowWriteResult,
@@ -258,8 +259,11 @@ export async function publishFlow(input: {
     };
   }
   // SSRF guard (the HTTP route never sets allowPrivateHosts; the CLI may).
-  if (!input.allowPrivateHosts && (await isFetchHostBlocked(hostname))) {
-    return { ok: false, status: 0, reason: `Refusing to publish to "${hostname}" - it resolves to a private/loopback address (SSRF guard).` };
+  if (!input.allowPrivateHosts) {
+    const verdict = await checkFetchHost(hostname);
+    if (verdict !== "ok") {
+      return { ok: false, status: 0, reason: hostRefusalReason(hostname, verdict, "publish to") };
+    }
   }
 
   const fetchImpl = input.fetchImpl ?? (globalThis.fetch as unknown as FetchImpl);

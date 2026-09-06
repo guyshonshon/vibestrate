@@ -70,7 +70,7 @@ A run works in a separate git worktree on its own branch. It never pushes and ne
 
 <div class="docs-callout">
 
-**Where the worktree boundary ends.** `node_modules`, `.venv` and `venv` are symlinked from your project into the worktree so your tests can run there. An agent with write permission can write back through those links into your project's installed dependencies, never into your tracked source. `git.linkEnvironment: off` turns the links off.
+**Where the worktree boundary ends.** `node_modules`, `.venv` and `venv` are symlinked from your project into the worktree so your tests can run there. A symlink's parent is the directory it points into, so `node_modules/..` is your project root: an agent with write permission reaches your whole project through those links, tracked source included. Everything git touches stays bounded to the copy, so the diff you review is still only the copy's; a direct write is not. Treat a run with links on as having your project's own privileges, and `git.linkEnvironment: off` to remove that.
 
 </div>
 

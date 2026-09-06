@@ -222,8 +222,20 @@ export async function readFreshFileReads(input: {
    * at (its `target` is always `<projectRoot>/<dir>`). Reading it out of the
    * worktree would ask the agent's own disk what the link means.
    *
-   * Which dirs are linked comes from the RUN'S OWN RECORD. Asking the
-   * worktree's disk instead was defeated by one `ln -s`.
+   * Which dirs are linked comes from the RUN'S OWN RECORD rather than from the
+   * worktree's disk, which one `ln -s` was enough to fake. The record is not
+   * unforgeable either - see the filter below - so its entries are validated
+   * as untrusted input.
+   *
+   * WHAT THIS GATE DOES AND DOES NOT PROMISE. It bounds the PATH a hint may
+   * name: the worktree, plus the directories the run linked in, and nothing
+   * else. It does not promise anything about the BYTES that come back, because
+   * a seat that can write into a linked directory can put whatever it likes
+   * there - a hard link has no target for a realpath check to follow, and a
+   * copy has none either. That seat already reaches the project through the
+   * link's own parent, so this is not a capability the gate gives away; it is a
+   * limit on what path containment can mean. `git.linkEnvironment: off` is what
+   * removes the reachability itself.
    *
    * Required, not optional: a caller that forgot it would compile, default to
    * none, and drop every hint through a linked directory in silence - which is
@@ -231,7 +243,22 @@ export async function readFreshFileReads(input: {
    */
   const linkedDirs = input.envLinks
     .map((dir) => dir.replace(/\\/g, "/").replace(/\/+$/, ""))
-    .filter((dir) => dir !== "" && dir !== "." && !dir.startsWith("/"));
+    // A linked dir names a directory INSIDE the project. Anything else is not
+    // a grant this gate knows how to scope, so it is refused rather than
+    // interpreted. `..` matters most: `envLinks: [".."]` would make the grant
+    // the project's PARENT, and a hint spelled `../secret` would read it.
+    //
+    // The producer cannot currently emit one, but the producer is not the only
+    // writer. A run's own state file lives under the project root, and a
+    // write-capable seat reaches the project root through `<linked dir>/..` -
+    // the linked dir is a symlink, so its parent is the project, not the
+    // worktree. So this list is treated as untrusted input, not as a record
+    // only the linker can have written.
+    .filter((dir) => {
+      if (dir === "" || dir === "." || dir.startsWith("/")) return false;
+      if (/^[a-zA-Z]:/.test(dir)) return false;
+      return !dir.split("/").includes("..");
+    });
   type Attempt = { root: AllowedRoot; rel: string };
   const attemptsFor = (relPath: string): Attempt[] => {
     const attempts: Attempt[] = [

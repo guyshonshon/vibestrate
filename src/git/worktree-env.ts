@@ -16,14 +16,29 @@ import { pathExists } from "../utils/fs.js";
 // worktree is byte-identical to the project's - a run that lands on a branch
 // with different deps must not validate against the wrong tree.
 //
-// HONEST BOUNDARY NOTE (documented exception to "writes are worktree-
-// bounded"): a write-capable agent in the worktree can write THROUGH a linked
-// dir into the project root's env dir (its own installed deps). git-apply
-// refuses paths beyond a symlink, so the apply gateway stays bounded; direct
-// writes by an acceptEdits seat are not. Blast radius = the host project's
-// gitignored env dirs only - never tracked sources - and the diff the human
-// reviews shows any package.json/script change that could exploit it.
-// `git.linkEnvironment: off` restores fully bare worktrees.
+// HONEST BOUNDARY NOTE (documented exception to "writes are worktree-bounded").
+// A write-capable agent in the worktree can write THROUGH a linked dir. This
+// note used to say the blast radius was the project's gitignored env dirs only,
+// never tracked sources. That was wrong, and the correction matters more than
+// the original claim did.
+//
+// A linked dir is a SYMLINK, so its parent is the PROJECT ROOT, not the
+// worktree: `<worktree>/node_modules/..` is the project. The kernel resolves
+// the link first and then applies `..`, so the whole project root is reachable
+// for reading AND writing. Verified: `echo x > node_modules/../src.ts`
+// overwrites a tracked source, and `node_modules/../.vibestrate/runs/<id>/`
+// reaches the run's own stored state. `../..` continues outward from there.
+//
+// So the real boundary with linking on is: an acceptEdits or auto seat is
+// bounded to the worktree for anything git touches (git-apply refuses paths
+// beyond a symlink, so the apply gateway stays bounded), and is NOT bounded at
+// all for direct writes. Treat a linked worktree as having the project's own
+// privileges, and treat anything read back out of a linked dir as content that
+// seat could have placed there - a hard link or a copy leaves no target for a
+// path check to follow.
+//
+// `git.linkEnvironment: off` is the setting that actually removes this, at the
+// cost of a bare worktree whose validation commands cannot find their deps.
 
 const LOCKFILES = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock", "bun.lockb"];
 

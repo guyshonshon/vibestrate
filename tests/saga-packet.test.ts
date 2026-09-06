@@ -379,6 +379,35 @@ describe("readFreshFileReads - containment", () => {
     }
   });
 
+  // envLinks is read back out of the run's own state file, which lives under
+  // the project root - and a write-capable seat reaches the project root
+  // through `<linked dir>/..`, because a linked dir is a symlink and its parent
+  // is the project. So the list is untrusted input, not a record only the
+  // linker can have written.
+  it("refuses an envLinks entry that climbs out of the project", async () => {
+    const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "saga-envesc-")));
+    try {
+      const proj = path.join(base, "proj");
+      const wt = path.join(base, "wt");
+      await fs.mkdir(path.join(proj, "node_modules"), { recursive: true });
+      await fs.mkdir(wt, { recursive: true });
+      await fs.writeFile(path.join(base, "OUTSIDE.txt"), "outside the project entirely\n");
+      await fs.symlink(path.join(proj, "node_modules"), path.join(wt, "node_modules"));
+
+      for (const entry of ["..", "../..", "node_modules/../..", "x\\..\\../node_modules"]) {
+        const reads = await readFreshFileReads({
+          worktreePath: wt,
+          projectRoot: proj,
+          envLinks: [entry],
+          fileHints: ["../OUTSIDE.txt", "../../OUTSIDE.txt", "node_modules/../../OUTSIDE.txt"],
+        });
+        expect(reads, `envLinks ${JSON.stringify(entry)}`).toEqual([]);
+      }
+    } finally {
+      await fs.rm(base, { recursive: true, force: true });
+    }
+  });
+
   // The linked dir is the whole grant. Widening it to the project root made
   // every project file reachable through ONE symlink planted inside the linked
   // directory, and a write-capable seat can plant one: writing through a linked

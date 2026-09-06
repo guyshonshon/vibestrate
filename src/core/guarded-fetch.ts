@@ -70,9 +70,11 @@ export async function fetchGuardedText(input: {
    *  `fetchImpl` is: a test that reaches the real resolver is a test that
    *  fails offline and hangs when the network is slow. */
   resolveHost?: HostResolver;
-  /** Deadline for ONE name resolution. Capped by whatever is left of
-   *  `timeoutMs`, so the whole call stays inside the bound this function
-   *  promises. Defaults to HOST_RESOLVE_TIMEOUT_MS. */
+  /** Ceiling for ONE name resolution. The effective deadline is the SMALLER of
+   *  this and whatever is left of `timeoutMs`, so the whole call stays inside
+   *  the bound this function documents. Unset means the remaining budget is the
+   *  only limit - a single slow name can then spend all of it, which is the
+   *  right trade for a bound that is honest over one that is merely smaller. */
   resolveTimeoutMs?: number;
 }): Promise<GuardedFetchResult> {
   const maxBytes = input.maxBytes ?? 512 * 1024;

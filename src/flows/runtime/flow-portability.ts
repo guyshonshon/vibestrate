@@ -581,6 +581,12 @@ export async function importFlowFromUrl(input: {
    *  the HTTP API never does. */
   allowPrivateHosts?: boolean;
 }): Promise<FlowWriteResult> {
+  // ONE clock for the whole import. Name resolution is not covered by the
+  // AbortController (dns.lookup takes no signal) and the first check runs
+  // before the timer is even armed, so without this the documented cap was a
+  // budget for fetching with a separate, larger allowance for resolving.
+  const startedAt = Date.now();
+  const remainingMs = () => FLOW_IMPORT_FETCH_TIMEOUT_MS - (Date.now() - startedAt);
   let parsed: URL;
   try {
     parsed = new URL(input.url);
@@ -597,7 +603,7 @@ export async function importFlowFromUrl(input: {
 
   if (!input.allowPrivateHosts) {
     const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
-    const verdict = await checkFetchHost(hostname);
+    const verdict = await checkFetchHost(hostname, { timeoutMs: remainingMs() });
     if (verdict !== "ok") {
       return {
         ok: false,
@@ -615,7 +621,10 @@ export async function importFlowFromUrl(input: {
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FLOW_IMPORT_FETCH_TIMEOUT_MS);
+  // What is LEFT of the budget: the host checks above and inside the redirect
+  // loop spend from the same clock, so the documented cap covers resolution
+  // rather than being a separate allowance on top of it.
+  const timer = setTimeout(() => controller.abort(), Math.max(0, remainingMs()));
   let text: string;
   try {
     // Redirects are followed BY HAND and re-checked at every hop: `fetch`
@@ -645,7 +654,7 @@ export async function importFlowFromUrl(input: {
       }
       if (!input.allowPrivateHosts) {
         const nextHost = next.hostname.replace(/^\[|\]$/g, "");
-        const nextVerdict = await checkFetchHost(nextHost);
+        const nextVerdict = await checkFetchHost(nextHost, { timeoutMs: remainingMs() });
         if (nextVerdict !== "ok") {
           return {
             ok: false,

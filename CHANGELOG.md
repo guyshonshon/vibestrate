@@ -2,32 +2,44 @@
 
 ## 0.4.4
 
-Three fixes to the guards that decide what a run may read and write. If you
-run repositories you do not control, take this one.
+Fixes to the guards that decide what a run may read and write, and a correction
+to what the worktree boundary was claiming. If you run repositories you do not
+control, take this one and read the second entry.
 
-- **A file hint reads inside the run's worktree, and inside the directories the
-  run linked in - nothing else.** 0.4.3 said that and did not do it. It decided
-  which hints had earned a look outside the worktree by asking the worktree
-  whether the hint's first directory was a symlink, and the run's own agent
-  writes the worktree, so one `ln -s` named after a project directory earned it.
-  Worse, what it earned was the whole project root, so even once that was fixed
-  a single symlink planted inside a linked directory still reached anywhere: a
-  run can write through a linked directory into the project's own copy of it,
-  which is a documented boundary of the linking feature, and
-  `node_modules/x -> ../.git/config` was approved by the fixed gate.
+- **A file hint can only name a path inside the run's worktree or a directory
+  the run linked in.** 0.4.3 said that and did not do it. It decided which hints
+  had earned a look outside the worktree by asking the worktree whether the
+  hint's first directory was a symlink, and the run's own agent writes the
+  worktree, so one `ln -s` named after a project directory earned it. What that
+  earned was the whole project root, so even with the decision fixed, a single
+  symlink planted inside a linked directory reached anywhere in your project:
+  `node_modules/x -> ../.git/config` was approved. A hint through a linked
+  directory is now proved to land inside THAT directory. The list of linked
+  directories is also validated rather than trusted, so an entry naming `..`
+  cannot turn the grant into your project's parent.
 
-  Both halves are closed now. Which directories count comes from the list the
-  linker recorded when it created the links, which nothing inside the run can
-  write. And a hint through one is proved to land inside THAT directory rather
-  than merely somewhere in your project. The files this was handing over include
-  `.git/config`, which carries credentials in remote URLs, other runs' stored
-  artifacts, and `.env` - whose contents are not caught by the secret redactor,
-  because that matches token shapes and a password is not one. Their bytes went
-  into the next step's prompt and into a durable run artifact. If you run
-  repositories you do not control, this is the fix to take.
+  What this does not promise, stated plainly because two releases in a row
+  claimed more than was true: the gate bounds the PATH a hint may name, not the
+  BYTES that come back. A seat that can write into a linked directory can put
+  anything there, and a hard link or a copy leaves no target for a path check to
+  follow. That seat already reaches your project through the link's own parent,
+  so the gate is not giving anything away; this is the limit of what path
+  containment can mean. The setting that removes the reachability is
+  `git.linkEnvironment: off`.
 
-  The same change fixes hints under a nested `packages/<name>/node_modules`,
-  which the old first-directory test had been refusing in silence.
+  Also fixed by the same change: hints under a nested
+  `packages/<name>/node_modules` had been refused in silence.
+
+- **The worktree boundary is documented honestly now, and it is wider than it
+  said.** Two pages and a source comment claimed a write through a linked
+  environment directory reached your installed dependencies and "never your
+  tracked source". A linked directory is a symlink, so its parent is your
+  project root rather than the worktree: `node_modules/..` is your project. A
+  write-capable run reaches all of it, tracked source included, and the run's
+  own stored state with it. Nothing changed in the code here; the claim was
+  wrong and is now correct. Patch apply still refuses paths that cross a
+  symlink, so the diff you review remains only the worktree's work. If that
+  boundary was why you left links on, `git.linkEnvironment: off` is the switch.
 
 - **A backslash in a filename is a filename, not a path separator.** On macOS
   and Linux a backslash is a perfectly legal character in a file name, and the

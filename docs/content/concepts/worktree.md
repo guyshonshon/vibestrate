@@ -39,7 +39,7 @@ Vibestrate refuses to write outside that folder, to secret-like files such as `.
 
 <div class="docs-callout warn">
 
-**One honest exception.** `node_modules`, `.venv` and `venv` are symlinked in from your project so your tests can run in the copy. An agent with write permission can write back through those links into your installed dependencies. It never reaches your tracked source, and `git.linkEnvironment: off` turns the links off.
+**One honest exception.** `node_modules`, `.venv` and `venv` are symlinked in from your project so your tests can run in the copy. A link's parent is the directory it points into, not the copy, so `node_modules/..` is your project root. An agent with write permission therefore reaches your whole project through those links, tracked source included, and can read anything in it. Patch apply refuses paths that cross a symlink, so the diff you review is still only the copy's work; a direct write by an accept-edits or auto seat is not covered. Read a linked run as having your project's own privileges. `git.linkEnvironment: off` turns the links off and takes that away.
 
 </div>
 
