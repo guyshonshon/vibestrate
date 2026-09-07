@@ -19,15 +19,19 @@ import type { ValidationSummary } from "../validation/validation-runner.js";
  * The reviewer saw "Passed: 0, Failed: 0", which reads clean.
  *
  * `null` (validation never ran, or no commands are configured) stays a pass:
- * there is nothing to check, which is a real answer. A PARTIAL run stays a pass
- * too - some evidence is weak, not absent, and the count reaches the reviewer's
- * prompt so the weakness is judged rather than hidden.
+ * there is nothing to check, which is a real answer.
+ *
+ * A PARTIAL run does NOT. The first version of this only blocked when
+ * `passed === 0`, which one trivially-passing command re-opened completely: a
+ * lint needing no toolchain, an `echo`, a `node -e`, and a run whose four real
+ * checks could not start merged on the strength of the one that could. A
+ * command that could not run is a check the owner asked for and did not get.
  */
 export function validationSatisfied(summary: ValidationSummary | null): boolean {
   if (summary === null) return true;
   if (summary.failed > 0) return false;
-  // Every command that ran could not start: nothing was verified.
-  return !(summary.passed === 0 && summary.environment > 0);
+  // Any command that could not run leaves a hole the passes do not fill.
+  return summary.environment === 0;
 }
 
 export type ReviewSkipEvidence = {

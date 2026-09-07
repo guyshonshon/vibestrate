@@ -161,6 +161,16 @@ export type RunContext = {
   eventLog: EventLog;
   stateStore: RunStateStore;
   onProgress: (message: string) => void;
+  /**
+   * Did an environment dir that EXISTS in the project fail to reach the
+   * worktree? Recorded at startup, before any command runs, on a channel the
+   * run's own agent cannot write to.
+   *
+   * Validation reads it to tell a missing toolchain apart from a toolchain the
+   * run broke. Without it that judgement came from the child's stderr, which
+   * the code under test produces.
+   */
+  environmentDegraded: boolean;
 };
 
 export type OrchestratorOutput = {

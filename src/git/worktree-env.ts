@@ -48,7 +48,17 @@ const LOCKFILES = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock", "bun.lock
 const ROOT_CANDIDATES = ["node_modules", ".venv", "venv"];
 
 export type EnvLink = { dir: string; target: string };
-export type EnvLinkSkip = { dir: string; reason: string };
+/**
+ * A dir that was not linked, and whether that leaves the worktree WORSE off.
+ *
+ * `degraded` is the load-bearing part, and it is decided here rather than by
+ * matching on `reason` later: a project with no `.venv` is not degraded, it
+ * simply has nothing to link, while a lockfile mismatch means the deps ARE
+ * there and the worktree cannot see them. Validation uses this to tell a
+ * missing toolchain (environmental) apart from a toolchain the run itself
+ * broke (a real failure), instead of guessing from the child's stderr.
+ */
+export type EnvLinkSkip = { dir: string; reason: string; degraded: boolean };
 export type EnvLinkResult = { linked: EnvLink[]; skipped: EnvLinkSkip[] };
 
 async function filesIdentical(a: string, b: string): Promise<boolean> {
@@ -234,10 +244,12 @@ async function linkDir(
   const target = path.join(projectRoot, relDir);
   const linkPath = path.join(worktreePath, relDir);
   if (!(await pathExists(target))) {
-    return { dir: relDir, reason: "not present in project root" };
+    // Nothing to link is not a degradation.
+    return { dir: relDir, reason: "not present in project root", degraded: false };
   }
   if (await pathExists(linkPath)) {
-    return { dir: relDir, reason: "already exists in worktree" };
+    // The worktree already has its own; nothing is missing.
+    return { dir: relDir, reason: "already exists in worktree", degraded: false };
   }
   // The exclude pattern is written ONLY here, at the moment this dir is
   // actually linked - never for skipped candidates (a vendored-node_modules
@@ -252,6 +264,7 @@ async function linkDir(
     return {
       dir: relDir,
       reason: err instanceof Error ? err.message : String(err),
+      degraded: true,
     };
   }
   // VERIFY against the link that now exists (not a hypothetical path shape):
@@ -266,6 +279,7 @@ async function linkDir(
       dir: relDir,
       reason:
         "git does not ignore the created link even with the local exclude - removed it (a committable link is worse than no link)",
+      degraded: true,
     };
   }
   return { dir: relDir, target };
@@ -314,7 +328,8 @@ export async function linkWorktreeEnvironment(input: {
     const isJs = dir === "node_modules";
     if (isJs && !jsGuardOk) {
       if (await pathExists(path.join(projectRoot, dir))) {
-        skipped.push({ dir, reason: jsGuardReason });
+        // The deps exist in the project and the worktree cannot see them.
+        skipped.push({ dir, reason: jsGuardReason, degraded: true });
       }
       continue;
     }

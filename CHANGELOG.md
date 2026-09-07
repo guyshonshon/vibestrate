@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+- **A failing check can no longer be filed as "the machine's fault".** 0.4.4
+  stopped a run that checked *nothing* from merging. It did not stop the case
+  underneath: whether a command "could not run" was decided by reading that
+  command's own error output, which is written by the code being tested. A suite
+  that genuinely failed and also shelled out to a missing binary was filed as
+  could-not-run, and since the failure count is worked out by subtracting those,
+  the real failure disappeared and the change merged. Anything exiting with the
+  shell's not-found code was filed that way too, without its output being read
+  at all.
+
+  Runs now answer this from what they recorded at startup. When the environment
+  was linked into the worktree successfully and a tool is still missing, the run
+  broke it, and that is a failure. When the environment genuinely did not make
+  it, a missing tool is believed. Neither judgement comes from the tested code's
+  output any more. A command that says anything about your code, an assertion,
+  a type error, a test summary, is a command that ran, whatever else it printed.
+  An unreachable Docker or Podman daemon is still environmental, since it has
+  nothing to do with any of this.
+
+  Three related holes closed with it. A single check that needed no toolchain
+  used to carry a whole run whose real checks never ran; a run is no longer
+  clear to merge while any check it was asked to make did not happen. A run with
+  both real failures and a missing tool reported the missing tool as its cause,
+  which is the only cause that gets handed to automatic remediation, so genuine
+  defects were sent off to be fixed by reinstalling something. And the recorded
+  numbers left the could-not-run count out entirely, so a run read back as four
+  checks, none passed, none failed.
+
 ## 0.4.4
 
 Fixes to the guards that decide what a run may read and write, to the gate that

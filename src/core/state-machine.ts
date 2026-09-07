@@ -155,6 +155,20 @@ export const runStateSchema = z.object({
   // whether a directory is a symlink, asks state the run's own agent writes.
   // Defaulted so a run recorded before this field parses unchanged.
   envLinks: z.array(z.string()).default([]),
+  /**
+   * Environment dirs that EXIST in the project and were not linked in - a
+   * lockfile mismatch, a link error, a refused link. Recorded before any
+   * command runs, on a channel the run's own agent cannot write to.
+   *
+   * Validation reads this to tell a missing toolchain apart from a toolchain
+   * the run itself broke. Without it, that judgement came from the child's
+   * stderr, which the code under test produces, so a genuinely failing suite
+   * that also mentioned a missing binary was scored as "could not run" and
+   * subtracted out of the failure count.
+   */
+  envDegraded: z
+    .array(z.object({ dir: z.string(), reason: z.string() }))
+    .default([]),
   reviewLoopCount: z.number().int().min(0).default(0),
   maxReviewLoops: z.number().int().min(0).default(2),
   startedAt: z.string(),
@@ -543,6 +557,7 @@ export function createInitialState(input: {
     worktreePath: input.worktreePath,
     branchName: input.branchName,
     envLinks: [],
+    envDegraded: [],
     reviewLoopCount: 0,
     maxReviewLoops: input.maxReviewLoops,
     abortRequested: false,

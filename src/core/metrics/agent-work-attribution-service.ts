@@ -47,7 +47,12 @@ export type RoleWorkRow = {
   filesChangedAfter: number | null;
   diffInsertionsAfter: number | null;
   diffDeletionsAfter: number | null;
-  validationSummary: { total: number; passed: number; failed: number } | null;
+  validationSummary: {
+    total: number;
+    passed: number;
+    failed: number;
+    environment?: number;
+  } | null;
   reviewDecision: string | null;
   verificationDecision: string | null;
   notes: string[];

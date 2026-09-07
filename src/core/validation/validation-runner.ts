@@ -47,16 +47,70 @@ export type ValidationSummary = {
   environment: number;
 };
 
+/** Lines that prove the tool RAN and judged the code. If one is present the
+ *  command produced a verdict, so nothing else in its output can make it
+ *  "never ran".
+ *
+ *  This is the gate that was missing. The shell patterns below test whether
+ *  stderr CONTAINS an environment-shaped line, which they must - the Windows
+ *  message spans two lines and the daemon ones sit inside tool chatter - so on
+ *  their own they let a genuinely failing suite that also shelled out to a
+ *  missing binary score as "could not run", and `ValidationSummary.failed` is
+ *  computed by SUBTRACTING that count. */
+const RAN_AND_JUDGED: RegExp[] = [
+  /\bAssertionError\b/,
+  /\berror TS\d+\b/,
+  /^\s*(?:FAIL|\u2717|\u00d7)\s/m,
+  /\bTests?\s+\d+\s+failed\b/,
+  /\b(?:SyntaxError|TypeError|ReferenceError)\b/,
+];
+
 /** A command that never really ran: the shell couldn't find the tool. The
  *  observed shape from a worktree without node_modules is exit 1 with
  *  `sh: tsc: command not found` on stderr (the wrapper masks 127).
  *
- *  Line-ANCHORED on purpose: the phrase must BE the
- *  shell's error line, not appear inside test output - vitest prints failure
- *  detail to stderr, and a real failing test that merely mentions "command
- *  not found" must stay a real failure. */
-export function isEnvironmentFailure(exitCode: number, stderr: string): boolean {
+ *  `environmentDegraded` is the run's OWN record (`RunState.envDegraded`):
+ *  dirs that exist in the project and were not linked into the worktree,
+ *  written at startup, before any command runs, on a channel the code under
+ *  test cannot touch. A missing toolchain is only believable as an environment
+ *  fault when that record says the environment really is missing; otherwise
+ *  the toolchain was there and the run broke it, which is a defect in the work
+ *  rather than a fault of the machine. Omitting it keeps the old behaviour for
+ *  callers with no record to offer.
+ *
+ *  A daemon that is not running is judged WITHOUT that record: it has nothing
+ *  to do with linked directories. */
+export function isEnvironmentFailure(
+  exitCode: number,
+  stderr: string,
+  environmentDegraded?: boolean,
+): boolean {
   if (exitCode === 0) return false;
+  // The tool spoke about the code. Whatever else is in the output, it ran.
+  if (RAN_AND_JUDGED.some((re) => re.test(stderr))) return false;
+  // A tool that IS installed but whose daemon is not running: the command
+  // never got to look at the code, so its failure says nothing about the work.
+  // Found by a benchmark run where Docker was down and the run reported
+  // `validation_failed`, which would have sent correct work back for rework
+  // instead of asking for the service.
+  //
+  // Deliberately NARROW, and deliberately NOT subject to the environment
+  // record below: a bare "connection refused" is not enough, because a suite
+  // failing to reach a service it was meant to start is a true defect, and
+  // calling that environmental would let a supervisor retry broken code
+  // forever. These name the TOOL saying its own daemon is unreachable.
+  if (
+    /Cannot connect to the Docker daemon/i.test(stderr) ||
+    /failed to connect to the docker API/i.test(stderr) ||
+    /Is the docker daemon running\?/i.test(stderr) ||
+    /docker: error during connect/i.test(stderr) ||
+    /Cannot connect to the Podman socket/i.test(stderr)
+  ) {
+    return true;
+  }
+  // Everything below is a MISSING TOOLCHAIN claim, which the run's own record
+  // must corroborate whenever one is available.
+  if (environmentDegraded === false) return false;
   if (exitCode === 127) return true;
   return (
     // `sh: tsc: command not found` / `zsh:1: command not found: tsc`
@@ -68,24 +122,7 @@ export function isEnvironmentFailure(exitCode: number, stderr: string): boolean 
       stderr,
     ) ||
     // shebang/env failures: `env: node: No such file or directory`
-    /^env: [^\n]{1,80}: No such file or directory\s*$/m.test(stderr) ||
-    // A tool that IS installed but whose daemon is not running. This is an
-    // environment fault in exactly the same sense as a missing binary: the
-    // command never got to look at the code, so its failure says nothing about
-    // the work. Found by a benchmark run where Docker was down and the run
-    // reported `validation_failed` - a real defect - which would have sent
-    // correct work back for rework instead of asking for the service.
-    //
-    // Deliberately NARROW. A bare "connection refused" is not enough: a real
-    // test suite failing to reach a service it was supposed to start is a true
-    // defect, and calling that environmental would let a supervisor
-    // auto-retry broken code forever. These patterns name the TOOL saying its
-    // own daemon is unreachable.
-    /Cannot connect to the Docker daemon/i.test(stderr) ||
-    /failed to connect to the docker API/i.test(stderr) ||
-    /Is the docker daemon running\?/i.test(stderr) ||
-    /docker: error during connect/i.test(stderr) ||
-    /Cannot connect to the Podman socket/i.test(stderr)
+    /^env: [^\n]{1,80}: No such file or directory\s*$/m.test(stderr)
   );
 }
 
@@ -107,6 +144,11 @@ export async function runValidationCommands(input: {
   roleId?: string;
   /** Per-command ceiling (commands.validateTimeoutMs). Omitted = the default. */
   timeoutMs?: number;
+  /** The run's own record: did an environment dir that EXISTS in the project
+   *  fail to reach the worktree? `false` means the toolchain was there, so a
+   *  missing binary is something the run broke, not a fault of the machine.
+   *  Omitted keeps the old stderr-only judgement for callers with no record. */
+  environmentDegraded?: boolean;
 }): Promise<ValidationResults> {
   const { commands, cwd, store, broker, runId } = input;
   const timeoutMs = input.timeoutMs ?? 900_000;
@@ -173,7 +215,11 @@ export async function runValidationCommands(input: {
     await writeText(stdoutAbs, result.stdout);
     await writeText(stderrAbs, result.stderr);
 
-    const environment = isEnvironmentFailure(result.exitCode, result.stderr);
+    const environment = isEnvironmentFailure(
+      result.exitCode,
+      result.stderr,
+      input.environmentDegraded,
+    );
 
     if (broker && action && allowDecision) {
       await broker.record(action, allowDecision, {

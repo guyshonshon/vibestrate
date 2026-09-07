@@ -39,13 +39,31 @@ describe("terminal cause is read from evidence, not from prose", () => {
     ).toBe("unknown");
   });
 
-  it("a missing toolchain outranks the failures it caused", () => {
+  // This used to assert the opposite, on the premise that the failures were
+  // CAUSED by the missing toolchain. That premise no longer holds: a command
+  // that could not start is classified `environment` itself, so a non-zero
+  // `failed` means those commands ran and judged the code. Leading with the
+  // environment relabelled real defects as a machine problem - and
+  // `validation_environment` is the only auto-remediable cause, so it handed
+  // them to an automatic "install the toolchain and re-run".
+  it("real failures outrank a command that could not start", () => {
     const cause = deriveTerminalCause({
       status: "blocked",
       events: [],
       validation: { summary: { failed: 3, environment: 1 } },
     });
-    expect(cause).toBe("validation_environment");
+    expect(cause).toBe("validation_failed");
+    expect(isAutoRemediable(cause)).toBe(false);
+  });
+
+  it("a missing toolchain still wins when nothing actually failed", () => {
+    expect(
+      deriveTerminalCause({
+        status: "blocked",
+        events: [],
+        validation: { summary: { failed: 0, environment: 4 } },
+      }),
+    ).toBe("validation_environment");
   });
 
   it("an unanswered approval is 'not certified', not 'broken'", () => {

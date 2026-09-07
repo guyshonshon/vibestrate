@@ -366,7 +366,7 @@ describe("agent-work attribution", () => {
       filesChanged: 2,
       diffInsertions: 5,
       diffDeletions: 3,
-      validationSummary: { total: 2, passed: 2, failed: 0 },
+      validationSummary: { total: 2, passed: 2, failed: 0, environment: 0 },
       approvalsSummary: {
         total: 0,
         pending: 0,
@@ -407,7 +407,7 @@ describe("agent-work attribution", () => {
           filesChangedAfter: 2,
           diffInsertionsAfter: 5,
           diffDeletionsAfter: 3,
-          validationSummary: { total: 2, passed: 2, failed: 0 },
+          validationSummary: { total: 2, passed: 2, failed: 0, environment: 0 },
           reviewDecision: null,
           verificationDecision: null,
           skillsAttached: ["vibestrate/code-review"],

@@ -5,7 +5,8 @@ import type { ApprovalRequest } from "../src/core/run/approval-types.js";
 
 const baseState = {
   pendingGuidance: [],
-      envLinks: [],
+  envLinks: [],
+  envDegraded: [],
   terminalCause: null,
   runId: "r1",
   task: "t",

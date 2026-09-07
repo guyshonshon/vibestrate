@@ -464,7 +464,12 @@ export type RoleMetrics = {
   filesChangedAfter: number | null;
   diffInsertionsAfter: number | null;
   diffDeletionsAfter: number | null;
-  validationSummary: { total: number; passed: number; failed: number } | null;
+  validationSummary: {
+    total: number;
+    passed: number;
+    failed: number;
+    environment?: number;
+  } | null;
   reviewDecision: string | null;
   verificationDecision: string | null;
   skillsAttached: string[];
@@ -485,6 +490,11 @@ export type RuntimeMetrics = {
   filesChanged: number | null;
   diffInsertions: number | null;
   diffDeletions: number | null;
-  validationSummary: { total: number; passed: number; failed: number } | null;
+  validationSummary: {
+    total: number;
+    passed: number;
+    failed: number;
+    environment?: number;
+  } | null;
   roles: RoleMetrics[];
 };

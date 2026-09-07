@@ -136,16 +136,26 @@ export function draftApprovalResolved(input: {
   };
 }
 
+/** Validation did not clear. `environmentCount` is separate on purpose: a
+ *  command that could not START is not a command that failed, and saying so
+ *  sends someone to read a diff for a problem that is on the machine. Both
+ *  block the run, so both have to be told. Only failures were reported before,
+ *  which left a run whose whole toolchain was missing silent. */
 export function draftValidationFailed(input: {
   runId: string;
   taskId: string | null;
   failedCount: number;
+  environmentCount?: number;
 }): NotificationDraft {
+  const envCount = input.environmentCount ?? 0;
+  const parts: string[] = [];
+  if (input.failedCount > 0) parts.push(`${input.failedCount} failed`);
+  if (envCount > 0) parts.push(`${envCount} could not run (toolchain missing)`);
   return {
     severity: "warning",
     category: "validation",
-    title: "Validation failed",
-    message: `${input.failedCount} validation command(s) failed in run ${input.runId}.`,
+    title: input.failedCount > 0 ? "Validation failed" : "Validation could not run",
+    message: `Validation in run ${input.runId}: ${parts.join(", ")}.`,
     runId: input.runId,
     taskId: input.taskId,
     sourceEventType: "validation.failed",

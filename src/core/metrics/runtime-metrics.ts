@@ -70,6 +70,10 @@ export const roleMetricsSchema = z.object({
       total: z.number(),
       passed: z.number(),
       failed: z.number(),
+      /** Commands that could not run. Absent, the numbers were unreadable:
+       *  `failed` is `total - passed - environment`, so a run whose toolchain
+       *  was missing recorded 4 total, 0 passed, 0 failed. */
+      environment: z.number().default(0),
     })
     .nullable()
     .default(null),
@@ -109,6 +113,10 @@ export const runtimeMetricsSchema = z.object({
       total: z.number(),
       passed: z.number(),
       failed: z.number(),
+      /** Commands that could not run. Absent, the numbers were unreadable:
+       *  `failed` is `total - passed - environment`, so a run whose toolchain
+       *  was missing recorded 4 total, 0 passed, 0 failed. */
+      environment: z.number().default(0),
     })
     .nullable()
     .default(null),

@@ -55,6 +55,10 @@ export async function runFlowValidationStep(
       worktreePath: string | null;
       artifactStore: ArtifactStore;
       eventLog: EventLog;
+      /** The run's own record of whether an env dir that exists in the project
+       *  failed to reach the worktree. Decides whether a missing toolchain is
+       *  the machine's fault or the run's. */
+      environmentDegraded?: boolean;
     };
   },
 ): Promise<{ state: RunState; validation: ValidationResults }> {
@@ -100,6 +104,10 @@ export async function runValidation(
       worktreePath: string | null;
       artifactStore: ArtifactStore;
       eventLog: EventLog;
+      /** The run's own record of whether an env dir that exists in the project
+       *  failed to reach the worktree. Decides whether a missing toolchain is
+       *  the machine's fault or the run's. */
+      environmentDegraded?: boolean;
     };
   },
 ): Promise<ValidationResults> {
@@ -170,6 +178,7 @@ export async function runValidation(
     broker: deps.broker ?? undefined,
     runId: ctx.artifactStore.runIdValue,
     timeoutMs: deps.config.commands?.validateTimeoutMs,
+    environmentDegraded: ctx.environmentDegraded,
   });
   for (const c of results.commands) {
     await ctx.eventLog.append({
@@ -200,7 +209,12 @@ export async function runValidation(
 export async function mergeAcceptanceValidation(
   deps: ValidationDeps,
   results: ValidationResults,
-  ctx: { worktreePath: string | null; artifactStore: ArtifactStore; eventLog: EventLog },
+  ctx: {
+    worktreePath: string | null;
+    artifactStore: ArtifactStore;
+    eventLog: EventLog;
+    environmentDegraded?: boolean;
+  },
   prefix: string | undefined,
 ): Promise<void> {
   if (!deps.taskId || !ctx.worktreePath) return;
@@ -221,6 +235,7 @@ export async function mergeAcceptanceValidation(
     broker: deps.broker ?? undefined,
     runId: ctx.artifactStore.runIdValue,
     timeoutMs: deps.config.commands?.validateTimeoutMs,
+    environmentDegraded: ctx.environmentDegraded,
   });
   for (const c of acc.commands) {
     await ctx.eventLog.append({

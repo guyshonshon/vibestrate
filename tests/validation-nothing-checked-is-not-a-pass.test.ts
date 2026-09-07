@@ -32,10 +32,11 @@ describe("validationSatisfied", () => {
     expect(validationSatisfied(summary({ total: 3, passed: 3 }))).toBe(true);
   });
 
-  it("accepts a partial run: weak evidence is still evidence", () => {
-    // A JS suite ran and passed; a Python one had no virtualenv. The count
-    // reaches the reviewer's prompt, so the weakness is judged, not hidden.
-    expect(validationSatisfied(summary({ total: 3, passed: 2, environment: 1 }))).toBe(true);
+  it("refuses a partial run, which one trivial command used to rescue", () => {
+    // Keying on `passed === 0` meant a single command needing no toolchain - a
+    // lint, an `echo`, a `node -e` - carried a run whose real checks never ran.
+    expect(validationSatisfied(summary({ total: 3, passed: 2, environment: 1 }))).toBe(false);
+    expect(validationSatisfied(summary({ total: 5, passed: 1, environment: 4 }))).toBe(false);
   });
 
   it("accepts no validation at all, which is a real answer and not a vacuous one", () => {

@@ -99,11 +99,19 @@ export function deriveTerminalCause(input: {
   if (has("supervisor.policy_block", (d) => d?.["inert"] !== true)) return "policy_block";
   if (has("scope.violation")) return "policy_block";
 
-  // Validation that could not RUN is the one genuine environment fault.
-  // Ordered before validation_failed: if the toolchain was missing, the
-  // failures downstream of it are not evidence about the code.
-  if ((input.validation?.summary.environment ?? 0) > 0) return "validation_environment";
+  // A REAL failure outranks a command that could not run. Environment used to
+  // be checked first, on the reasoning that a missing toolchain makes the
+  // failures downstream of it meaningless - but that only holds when nothing
+  // really failed. With both present, leading with the environment relabels a
+  // run that has genuine failures as a machine problem, and
+  // `validation_environment` is the ONLY auto-remediable cause
+  // (see isAutoRemediable), so it would hand real defects to an automatic
+  // "install the toolchain and re-run".
+  //
+  // This now matches its two siblings, which already ordered it this way:
+  // run-assurance's validation lane and flow-arbitration's status.
   if ((input.validation?.summary.failed ?? 0) > 0) return "validation_failed";
+  if ((input.validation?.summary.environment ?? 0) > 0) return "validation_environment";
 
   // Exhaustion. Deliberately LAST among the specific signals, so anything that
   // named a cause is preferred over "it gave up".

@@ -1163,6 +1163,7 @@ export async function runRoleTurn(
             total: input.validationResults.summary.total,
             passed: input.validationResults.summary.passed,
             failed: input.validationResults.summary.failed,
+            environment: input.validationResults.summary.environment,
           }
         : null,
       reviewDecision: input.reviewDecisionForStage ?? null,

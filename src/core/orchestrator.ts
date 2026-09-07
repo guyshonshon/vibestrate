@@ -1292,9 +1292,22 @@ export class Orchestrator {
           });
         }
         // Persisted so the file-hint gate can ask what this run linked rather
-        // than asking the worktree, which the agent writes.
-        if (env.linked.length > 0) {
-          state = { ...state, envLinks: env.linked.map((l) => l.dir) };
+        // than asking the worktree, which the agent writes, and so validation
+        // can tell a missing toolchain apart from one the run broke.
+        //
+        // Written whenever there is EITHER outcome to record. Keying it on
+        // "something was linked" would skip the case that matters most: the
+        // lockfile guard refusing node_modules links nothing at all, which is
+        // precisely when validation must not trust a missing tool.
+        const degraded = env.skipped
+          .filter((sk) => sk.degraded)
+          .map((sk) => ({ dir: sk.dir, reason: sk.reason }));
+        if (env.linked.length > 0 || degraded.length > 0) {
+          state = {
+            ...state,
+            envLinks: env.linked.map((l) => l.dir),
+            envDegraded: degraded,
+          };
           await stateStore.write(state);
         }
         await startup(
@@ -1499,6 +1512,7 @@ export class Orchestrator {
       eventLog,
       stateStore,
       onProgress: this.onProgress,
+      environmentDegraded: state.envDegraded.length > 0,
     };
 
     // One runner for every run. Stages that already triggered a policy approval
@@ -2161,12 +2175,16 @@ export class Orchestrator {
         );
         state = out.state;
         lastValidation = out.validation;
-        if (out.validation.summary.failed > 0) {
+        // Both buckets block the run, so both are worth telling. Keying this
+        // on failures alone left a run whose whole toolchain was missing
+        // silent - the case with the least evidence got the least signal.
+        if (out.validation.summary.failed > 0 || out.validation.summary.environment > 0) {
           input.notify(
             draftValidationFailed({
               runId: input.runId,
               taskId: this.taskId,
               failedCount: out.validation.summary.failed,
+              environmentCount: out.validation.summary.environment,
             }),
           );
         }
@@ -3411,12 +3429,16 @@ export class Orchestrator {
             );
             state = validationOutput.state;
             lastValidation = validationOutput.validation;
-            if (validationOutput.validation.summary.failed > 0) {
+            if (
+              validationOutput.validation.summary.failed > 0 ||
+              validationOutput.validation.summary.environment > 0
+            ) {
               input.notify(
                 draftValidationFailed({
                   runId: input.runId,
                   taskId: this.taskId,
                   failedCount: validationOutput.validation.summary.failed,
+                  environmentCount: validationOutput.validation.summary.environment,
                 }),
               );
             }
@@ -4022,6 +4044,7 @@ export class Orchestrator {
             total: lastValidation.summary.total,
             passed: lastValidation.summary.passed,
             failed: lastValidation.summary.failed,
+            environment: lastValidation.summary.environment,
           }
         : null,
       approvalsSummary: summarizeApprovals(approvals),
