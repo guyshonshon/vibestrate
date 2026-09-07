@@ -1,52 +1,45 @@
 # Changelog
 
-## Unreleased
-
-- **A failing check can no longer be filed as "the machine's fault".** 0.4.4
-  stopped a run that checked *nothing* from merging. It did not stop the case
-  underneath: whether a command "could not run" was decided by reading that
-  command's own error output, which is written by the code being tested. A suite
-  that genuinely failed and also shelled out to a missing binary was filed as
-  could-not-run, and since the failure count is worked out by subtracting those,
-  the real failure disappeared and the change merged. Anything exiting with the
-  shell's not-found code was filed that way too, without its output being read
-  at all.
-
-  Runs now answer this from what they recorded at startup. When the environment
-  was linked into the worktree successfully and a tool is still missing, the run
-  broke it, and that is a failure. When the environment genuinely did not make
-  it, a missing tool is believed. Neither judgement comes from the tested code's
-  output any more. A command that says anything about your code, an assertion,
-  a type error, a test summary, is a command that ran, whatever else it printed.
-  An unreachable Docker or Podman daemon is still environmental, since it has
-  nothing to do with any of this.
-
-  Three related holes closed with it. A single check that needed no toolchain
-  used to carry a whole run whose real checks never ran; a run is no longer
-  clear to merge while any check it was asked to make did not happen. A run with
-  both real failures and a missing tool reported the missing tool as its cause,
-  which is the only cause that gets handed to automatic remediation, so genuine
-  defects were sent off to be fixed by reinstalling something. And the recorded
-  numbers left the could-not-run count out entirely, so a run read back as four
-  checks, none passed, none failed.
-
 ## 0.4.4
 
 Fixes to the guards that decide what a run may read and write, to the gate that
 decides when a run is done, and a correction to what the worktree boundary was
 claiming. If you run repositories you do not control, take this one. Everyone
 should read the first entry: a run that checked nothing could merge.
-- **A run that checked nothing no longer reads as a run that passed.** Validation
-  counts commands that could not start separately from commands that failed, and
-  the merge gate only looked at the failed count. So a run whose entire toolchain
-  was missing scored zero failures and reached `merge_ready` on evidence it never
-  gathered. Your reviewer was handed "Passed: 0, Failed: 0", which reads clean.
-  This was reachable without changing any setting: a branch that touches
-  dependencies trips the lockfile guard and the environment is not linked, and
-  every command then exits "command not found". A run where nothing ran now
-  blocks, and the count of commands that could not run is in the reviewer's
-  prompt as "Could not run", so a partly-checked run is judged rather than
-  rounded up.
+- **A run that checked nothing, or that filed a real failure as the machine's
+  fault, no longer merges.** Two problems, one shape. Validation counts commands
+  that could not start separately from commands that failed, and works out the
+  failure count by subtracting them, so a run whose whole toolchain was missing
+  scored zero failures and merged on evidence it never gathered. Your reviewer
+  was handed "Passed: 0, Failed: 0", which reads clean. No setting change was
+  needed to reach it: a branch that touches dependencies means the environment
+  is not linked into the run's copy, and every command then fails to start.
+
+  Underneath that, whether a command "could not run" was decided by reading that
+  command's own error output, which is written by the code being judged. A suite
+  that genuinely failed and also shelled out to a missing binary had its failure
+  deleted. Anything exiting with the shell's not-found code was filed that way
+  without its output being read at all. And an agent that removed a dependency
+  made its own build tool vanish, which was filed as the machine's fault rather
+  than as the defect it is.
+
+  Runs now answer this from what they recorded when they started, before any
+  command ran. If the environment reached the run's copy and a tool is still
+  missing, the run broke it, and that is a failure. If the environment genuinely
+  did not make it, a missing tool is believed. Separately, a command that says
+  anything about your code, an assertion, a type error, a test summary, is a
+  command that ran, whatever else it printed. An unreachable Docker or Podman
+  daemon stays environmental, being unrelated to any of this.
+
+  Three consequences worth knowing. A run is no longer clear to merge while any
+  check it was asked to make did not happen, so a single check needing no
+  toolchain cannot carry one whose real checks never ran. A run with both real
+  failures and a missing tool now reports the failures as its cause, which
+  matters because the other cause is the only one handed to automatic
+  remediation, so genuine defects were being sent off to be fixed by
+  reinstalling something. And the count of checks that could not run is recorded
+  and shown to the reviewer, where before a run read back as four checks, none
+  passed, none failed.
 
 - **A file hint can only name a path inside the run's worktree or a directory
   the run linked in.** 0.4.3 said that and did not do it. It decided which hints
