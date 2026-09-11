@@ -113,7 +113,14 @@ should read the first entry: a run that checked nothing could merge.
   refusal also says what is actually true now: a host that would not resolve, or
   a resolver that did not answer, used to be reported as an address in private
   space, which nothing had checked. Five call sites worded that refusal by hand
-  and they had already started to drift; one helper words it now.
+  and they had already started to drift; one helper words it now. The egress
+  proxy waited on name resolution with no deadline of its own, so how long a
+  confined run's `CONNECT` hung was up to the system resolver; it now refuses at
+  the same deadline. The worse hold was on refusals: a refused connection stayed
+  open for as long as its client kept it open, and now closes on a fixed
+  deadline. An allowlisted host the proxy refuses is no longer told it is missing
+  from the allowlist. These checks cover `https://` only: plain `http://`
+  through the proxy does not get the address check or the deadline yet.
 
 ## 0.4.3
 
