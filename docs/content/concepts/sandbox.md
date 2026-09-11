@@ -145,15 +145,16 @@ vibe config set execution.container.egress.allow \
   '["registry.npmjs.org", ".github.com"]'
 ```
 
-A host you did not list is logged as an exact refusal (`egress DENY connect <host>:443`). Only ports 80 and 443 are tunnelled: a `CONNECT` to an arbitrary port is a generic TCP tunnel, not web egress, and is refused even for an allowed host. Setting up the network or the proxy is **fail-closed** - if either cannot be created the run is refused, rather than executing with full outbound access while the config claims an allowlist.
+A host you did not list is logged as an exact refusal (`egress DENY connect <host>:443`). An `https://` connection to a host you did list is refused too if its name does not resolve, resolves to a private or reserved address, or takes longer than five seconds to resolve, and the proxy's log says which. Only ports 80 and 443 are tunnelled: a `CONNECT` to an arbitrary port is a generic TCP tunnel, not web egress, and is refused even for an allowed host. Setting up the network or the proxy is **fail-closed** - if either cannot be created the run is refused, rather than executing with full outbound access while the config claims an allowlist.
 
 <div class="docs-callout warn">
 
-**What an allowlist does not close.** Three honest limits:
+**What an allowlist does not close.** Four honest limits:
 
 - The proxy tunnels TLS, so it cannot see inside a connection to a host you allowed. Data can still be encoded into an otherwise-legitimate request to an allowed model API. Hostname allowlisting **narrows** exfiltration to the hosts you named; it does not eliminate it.
 - MCP-tool turns do not run under the container backend at all, so their egress is not covered by this.
 - The proxy is not authenticated, so other containers on your default Docker bridge can use it. It only ever relays to allowlisted hosts, so the blast radius is small, but it is not private.
+- Plain `http://` requests to a host you allowed are not yet checked against private addresses and have no resolution deadline; only `https://` is. Do not allow a name that points into your own network.
 
 </div>
 

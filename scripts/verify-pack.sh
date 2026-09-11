@@ -139,6 +139,27 @@ node -e '
   console.log(`   ok: all ${refs.length} dashboard asset(s) referenced by index.html shipped`);
 ' "$WORK" || { echo "FAIL: the dashboard entry references assets the tarball does not ship"; exit 1; }
 
+# The egress proxy is bind-mounted ALONE into a container that has a node runtime
+# and nothing else, so the file that ships has to load with no module resolution
+# at all. A source test pins its imports to node builtins; this checks the built
+# file, which also catches a bundler change (code splitting, say) that moves its
+# code into a shared chunk it would then fail to import. The entry block stays
+# off, so importing it starts nothing.
+echo "-> Checking the egress proxy loads as one file with nothing beside it..."
+tar -xzf "$TARBALL" -C "$WORK" package/dist/egress-proxy.js
+LONE="$WORK/egress-proxy-alone"
+mkdir -p "$LONE"
+cp "$WORK/package/dist/egress-proxy.js" "$LONE/vibestrate-egress-proxy.mjs"
+env -u VIBESTRATE_EGRESS_ENTRY node --input-type=module -e '
+  const { pathToFileURL } = await import("node:url");
+  const proxy = await import(pathToFileURL(process.argv[1]).href);
+  if (typeof proxy.startEgressProxy !== "function") throw new Error("startEgressProxy is not exported");
+  console.log("   ok: dist/egress-proxy.js loads on its own");
+' "$LONE/vibestrate-egress-proxy.mjs" || {
+  echo "FAIL: dist/egress-proxy.js does not load on its own; the egress proxy container would not start"
+  exit 1
+}
+
 echo "   manifest ok ($(wc -l <<<"$MANIFEST" | tr -d ' ') entries)"
 
 # ── Clean-room install from the tarball ───────────────────────────────────────
