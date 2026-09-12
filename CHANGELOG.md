@@ -120,8 +120,11 @@ should read the first entry: a run that checked nothing could merge.
   up, so a slow name still lands and one that never answers cannot hold the run. The worse hold was on refusals: a refused connection stayed
   open for as long as its client kept it open, and now closes on a fixed
   deadline. An allowlisted host the proxy refuses is no longer told it is missing
-  from the allowlist. These checks cover `https://` only: plain `http://`
-  through the proxy does not get the address check or the deadline yet.
+  from the allowlist. Plain `http://` proxying gets all of this too: it
+  used to hand the hostname to the connection and let it resolve there, with no
+  address check at all, so an allowlisted name pointing at your own network was
+  proxied. It now resolves, checks, and sends to the address it checked, and the
+  wait for an origin that never answers is bounded.
 
 ## 0.4.3
 
