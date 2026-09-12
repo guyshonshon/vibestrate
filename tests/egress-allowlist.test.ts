@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import http from "node:http";
 import net from "node:net";
 import {
+  CONNECT_RESOLVE_TIMEOUT_MS,
   DEFAULT_EGRESS_ALLOW,
   EGRESS_PROXY_PORT,
   forwardableHeaders,
@@ -721,5 +722,17 @@ describe("egress config defaults keep today's behavior", () => {
 
   it("exposes a stable proxy port for the container URL", () => {
     expect(EGRESS_PROXY_PORT).toBe(8888);
+  });
+});
+
+describe("the CONNECT resolution backstop stays above the resolver's own retries", () => {
+  it("never cuts short a lookup the system resolver would still be retrying", () => {
+    // glibc's resolv.conf defaults are timeout:5 attempts:2, so a lookup can
+    // legitimately take up to 10s: one lost A/AAAA reply spends the first 5s and
+    // the retry answers after it. Docker's embedded DNS spends about 4s per
+    // upstream before failing over. A backstop at or under that refuses model
+    // API calls that were about to succeed, which is why this is not the SSRF
+    // guard's fail-fast 5s.
+    expect(CONNECT_RESOLVE_TIMEOUT_MS).toBeGreaterThan(10_000);
   });
 });

@@ -22,7 +22,7 @@ import fs from "node:fs/promises";
 import dns from "node:dns/promises";
 import net from "node:net";
 import { redirectTargetOf, MAX_GUARDED_REDIRECTS } from "../../core/guarded-fetch.js";
-import { HOST_RESOLVE_TIMEOUT_MS, type HostResolver } from "../../core/execution/egress-proxy.js";
+import type { HostResolver } from "../../core/execution/egress-proxy.js";
 import YAML from "yaml";
 import { isPathInside, projectFlowsDir } from "../../utils/paths.js";
 import { pathExists, readText } from "../../utils/fs.js";
@@ -712,14 +712,22 @@ export async function importFlowFromUrl(input: {
   });
 }
 
-// The resolver contract and HOST_RESOLVE_TIMEOUT_MS are defined in the egress
-// proxy module, which shares them and must stay import-free, so this is the
-// side that imports. The SSRF check needs the deadline because `dns.lookup`
-// takes no AbortSignal and the fetch timeout is armed AFTER the check: without
-// it the guard's "bounded by time" promise did not cover resolution, and a
-// hostile redirect chain could hang the caller for MAX hops times the
-// resolver's own timeout, with no cancellation.
+// The resolver contract is defined in the egress proxy module, which shares it
+// and must stay import-free, so this is the side that imports.
 export type { HostResolver };
+
+/** How long the SSRF check will wait for a name to resolve before failing
+ *  closed. `dns.lookup` takes no AbortSignal and the fetch timeout is armed
+ *  AFTER the check, so without this the guard's "bounded by time" promise did
+ *  not cover resolution: a hostile redirect chain could hang the caller for MAX
+ *  hops times the resolver's own timeout, with no cancellation.
+ *
+ *  Short on purpose, and NOT what the egress proxy uses. This bound protects a
+ *  caller that can afford to fail fast, and shares a 10s budget with the fetch
+ *  itself; the proxy sits on every model API call a confined run makes and
+ *  backstops at CONNECT_RESOLVE_TIMEOUT_MS instead, above what a system resolver
+ *  spends before giving up. */
+export const HOST_RESOLVE_TIMEOUT_MS = 5_000;
 
 const systemResolver: HostResolver = async (hostname) => {
   const addrs = await dns.lookup(hostname, { all: true });

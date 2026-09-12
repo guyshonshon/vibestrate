@@ -145,7 +145,7 @@ vibe config set execution.container.egress.allow \
   '["registry.npmjs.org", ".github.com"]'
 ```
 
-A host you did not list is logged as an exact refusal (`egress DENY connect <host>:443`). An `https://` connection to a host you did list is refused too if its name does not resolve, resolves to a private or reserved address, or takes longer than five seconds to resolve, and the proxy's log says which. Only ports 80 and 443 are tunnelled: a `CONNECT` to an arbitrary port is a generic TCP tunnel, not web egress, and is refused even for an allowed host. Setting up the network or the proxy is **fail-closed** - if either cannot be created the run is refused, rather than executing with full outbound access while the config claims an allowlist.
+A host you did not list is logged as an exact refusal (`egress DENY connect <host>:443`). An `https://` connection to a host you did list is refused too if its name does not resolve, resolves to a private or reserved address, or takes longer than fifteen seconds to resolve, and the proxy's log says which. Only ports 80 and 443 are tunnelled: a `CONNECT` to an arbitrary port is a generic TCP tunnel, not web egress, and is refused even for an allowed host. Setting up the network or the proxy is **fail-closed** - if either cannot be created the run is refused, rather than executing with full outbound access while the config claims an allowlist.
 
 <div class="docs-callout warn">
 

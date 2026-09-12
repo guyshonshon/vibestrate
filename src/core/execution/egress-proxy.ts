@@ -37,17 +37,28 @@ export const EGRESS_PROXY_PORT = 8888;
 const TUNNEL_IDLE_MS = 120_000;
 
 /** Resolve a hostname to addresses. Injectable so a caller (a test, or a
- *  process with its own resolver) is not forced onto the system one. */
+ *  process with its own resolver) is not forced onto the system one. One
+ *  contract for every caller, defined here because this file can import nothing
+ *  (see above), so flow-portability is the side that imports it. */
 export type HostResolver = (hostname: string) => Promise<string[]>;
 
 /**
- * How long a name may take to resolve before whoever asked refuses.
+ * How long a CONNECT may spend resolving a name before the proxy refuses.
  * `dns.lookup` takes no AbortSignal, so without a deadline a resolver that never
- * answers holds the caller with nothing able to cancel it. The SSRF check in
- * flow-portability shares this number and imports it from here: this file can
- * import nothing (see above), so that is the only direction that keeps one copy.
+ * answers holds the client with nothing able to cancel it.
+ *
+ * A BACKSTOP, and deliberately longer than the SSRF guard's 5s
+ * (HOST_RESOLVE_TIMEOUT_MS in flow-portability): every model API call a confined
+ * run makes comes through here, so cutting a lookup short costs a turn, while
+ * that guard protects a fetch that can afford to fail fast. glibc's defaults are
+ * timeout:5 attempts:2 (resolv.conf(5)), up to 10s before it gives up, and
+ * Docker's embedded DNS spends about 4s per upstream before failing over. A 5s
+ * deadline fires exactly when the resolver is about to retry, turning a slow
+ * success into a refusal. Past 10s, nothing the system resolver would still have
+ * answered is cut off, and what remains bounded is a resolver told to wait
+ * longer than its own defaults, or one that never answers at all.
  */
-export const HOST_RESOLVE_TIMEOUT_MS = 5_000;
+export const CONNECT_RESOLVE_TIMEOUT_MS = 15_000;
 
 /** The system resolver, answering with the one address getaddrinfo puts first:
  *  the CONNECT path checks that address and then dials it, never the answer to
@@ -265,7 +276,8 @@ export function startEgressProxy(opts: {
   /** Resolves a CONNECT host before it is checked and dialled. Defaults to the
    *  system resolver. */
   resolveHost?: HostResolver;
-  /** Ceiling for one CONNECT host resolution. Defaults to HOST_RESOLVE_TIMEOUT_MS. */
+  /** Ceiling for one CONNECT host resolution. Defaults to
+   *  CONNECT_RESOLVE_TIMEOUT_MS. */
   resolveTimeoutMs?: number;
   /** Idle timeout for a CONNECT client and both ends of its tunnel. Defaults to
    *  TUNNEL_IDLE_MS; settable so a test need not wait two minutes. */
@@ -274,7 +286,7 @@ export function startEgressProxy(opts: {
   const allow = [...opts.allow];
   const log = opts.log ?? ((line: string) => process.stdout.write(`${line}\n`));
   const resolveHost = opts.resolveHost ?? systemResolver;
-  const resolveTimeoutMs = opts.resolveTimeoutMs ?? HOST_RESOLVE_TIMEOUT_MS;
+  const resolveTimeoutMs = opts.resolveTimeoutMs ?? CONNECT_RESOLVE_TIMEOUT_MS;
   const idleTimeoutMs = opts.idleTimeoutMs ?? TUNNEL_IDLE_MS;
 
   const server = http.createServer((req, res) => {
