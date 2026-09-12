@@ -120,6 +120,13 @@ async function resolveWithin(
   }
 }
 
+/** What a confined run is told when a host it IS allowed to reach was refused
+ *  anyway, on either path. One wording for every reason: telling "does not
+ *  resolve" apart from "points into private space" would let the run map the
+ *  internal names under an allowlisted suffix. The reason goes to the log. */
+const REFUSED_LISTED =
+  "is in this run's egress allowlist, but was refused: the egress proxy's log says why";
+
 /**
  * Hosts every egress-confined run gets, because blocking them means no run at
  * all: the model API endpoints the supported provider CLIs authenticate and
@@ -230,6 +237,17 @@ export function forwardableHeaders(
   return out;
 }
 
+/** The origin's headers, minus the ones that belong to the proxy's connection
+ *  with it rather than to the run's connection with the proxy. A relayed
+ *  `Keep-Alive` in particular describes a socket the run cannot see. */
+function relayableHeaders(headers: http.IncomingHttpHeaders): http.IncomingHttpHeaders {
+  const out: http.IncomingHttpHeaders = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (!HOP_BY_HOP.has(key.toLowerCase())) out[key] = value;
+  }
+  return out;
+}
+
 /**
  * Addresses an allowlisted hostname must never resolve to. A user who allows
  * `.corp.example` and has `metadata.corp.example` pointed at 169.254.169.254
@@ -289,6 +307,22 @@ export function startEgressProxy(opts: {
   const resolveTimeoutMs = opts.resolveTimeoutMs ?? CONNECT_RESOLVE_TIMEOUT_MS;
   const idleTimeoutMs = opts.idleTimeoutMs ?? TUNNEL_IDLE_MS;
 
+  /** The one address an allowlisted host may be reached at, or why it may not
+   *  be. Both paths resolve through here, so the address that gets checked is
+   *  the address that gets dialled, and their refusals cannot drift apart. */
+  const addressFor = async (
+    host: string,
+  ): Promise<{ ok: true; address: string } | { ok: false; why: string }> => {
+    const resolved = await resolveWithin(resolveHost, host, resolveTimeoutMs);
+    if (resolved.kind === "timeout") return { ok: false, why: "resolution timed out" };
+    if (resolved.kind === "failed") return { ok: false, why: `resolution failed (${resolved.code})` };
+    if (resolved.kind === "unresolvable") return { ok: false, why: "unresolvable" };
+    if (isForbiddenAddress(resolved.address)) {
+      return { ok: false, why: `resolves to ${resolved.address}` };
+    }
+    return { ok: true, address: resolved.address };
+  };
+
   const server = http.createServer((req, res) => {
     // Same reasoning as the CONNECT path: a client that disconnects while being
     // refused must not raise an unhandled 'error'.
@@ -312,39 +346,88 @@ export function startEgressProxy(opts: {
       return;
     }
     const port = target.port ? Number(target.port) : 80;
-    if (
-      !isPlausibleHostname(target.hostname) ||
-      !isAllowed(target.hostname, allow) ||
-      !ALLOWED_PORTS.has(port)
-    ) {
-      log(`egress DENY http ${target.hostname}:${port}`);
-      res
-        .writeHead(403, { "content-type": "text/plain" })
-        .end(
-          `egress proxy: ${target.hostname} is not in this run's egress allowlist. ` +
-            `Add it with: vibe config set execution.container.egress.allow '["${target.hostname}"]'\n`,
-        );
+    const shown = `${target.hostname}:${port}`;
+    // Callers punctuate their own sentence; only the prefix and newline are here.
+    const deny = (body: string) => {
+      res.writeHead(403, { "content-type": "text/plain" }).end(`egress proxy: ${body}\n`);
+    };
+    if (!isPlausibleHostname(target.hostname) || !isAllowed(target.hostname, allow)) {
+      log(`egress DENY http ${shown} (not allowed)`);
+      deny(
+        `${target.hostname} is not in this run's egress allowlist. ` +
+          `Add it with: vibe config set execution.container.egress.allow '["${target.hostname}"]'`,
+      );
       return;
     }
-    log(`egress ALLOW http ${target.hostname}:${port}`);
-    const upstream = http.request(
-      {
-        host: target.hostname,
-        port,
-        method: req.method,
-        path: `${target.pathname}${target.search}`,
-        headers: forwardableHeaders(req.headers, target.host),
-      },
-      (up) => {
-        res.writeHead(up.statusCode ?? 502, up.headers);
-        up.pipe(res);
-      },
-    );
-    upstream.on("error", () => {
-      if (!res.headersSent) res.writeHead(502);
-      res.end("egress proxy: upstream error\n");
-    });
-    req.pipe(upstream);
+    if (!ALLOWED_PORTS.has(port)) {
+      log(`egress DENY http ${shown} (port not allowed)`);
+      deny(`${shown} is not proxied: only ports 80 and 443 are.`);
+      return;
+    }
+    // Resolve, check, then send to the address that was checked. Handing the
+    // NAME to http.request let the connection resolve it again, past the
+    // private-address check: cloud metadata answers plain HTTP on port 80, so an
+    // allowlisted name pointing into your network was proxied straight through.
+    void addressFor(target.hostname)
+      .then((dial) => {
+        // The client gave up while its name resolved. Nothing to send anywhere.
+        if (res.writableEnded || res.destroyed) return;
+        if (!dial.ok) {
+          log(`egress DENY http ${shown} (${dial.why})`);
+          deny(`${shown} ${REFUSED_LISTED}.`);
+          return;
+        }
+        log(`egress ALLOW http ${shown}`);
+        const upstream = http.request(
+          {
+            host: dial.address,
+            port,
+            method: req.method,
+            path: `${target.pathname}${target.search}`,
+            // The origin routes on Host, which forwardableHeaders has already set
+            // to the authority the allowlist approved, so sending to an address
+            // changes nothing the far end sees.
+            headers: forwardableHeaders(req.headers, target.host),
+            // Nothing bounded the wait for an origin that accepts and never
+            // answers: the server's own timeout is off, and this request had none.
+            timeout: idleTimeoutMs,
+          },
+          (up) => {
+            res.writeHead(up.statusCode ?? 502, relayableHeaders(up.headers));
+            up.pipe(res);
+          },
+        );
+        const failUpstream = (status: number, why: string) => {
+          if (res.writableEnded) return;
+          // Once the origin's headers are out, the body belongs to the origin. A
+          // sentence of ours written into it arrives as part of that body, and
+          // closing the framing cleanly hands the run a TRUNCATED answer that
+          // reads as a finished one - with a declared length, the extra bytes
+          // land in whatever reply comes next on the connection. Cut it instead:
+          // that is what a client reads as a response that did not finish.
+          if (res.headersSent) {
+            res.destroy();
+            return;
+          }
+          res.writeHead(status, { "content-type": "text/plain" }).end(`egress proxy: ${why}\n`);
+        };
+        upstream.on("timeout", () => {
+          failUpstream(504, "upstream timed out");
+          upstream.destroy();
+        });
+        upstream.on("error", () => failUpstream(502, "upstream error"));
+        // A client's close does not reach the upstream through a pipe, so
+        // without this the socket it dialled sits there until its idle timeout,
+        // once per abandoned request, here and at the origin.
+        res.on("close", () => {
+          if (!res.writableFinished) upstream.destroy();
+        });
+        req.pipe(upstream);
+      })
+      // One request must never take the proxy down. log() is the caller's, and
+      // an unhandled rejection here exits the process, which is the whole run's
+      // way out.
+      .catch(() => res.destroy());
   });
 
   // CONNECT is the path that matters: every https:// call arrives here.
@@ -398,36 +481,23 @@ export function startEgressProxy(opts: {
     }
     const shown = `${parsed.host}:${parsed.port}`;
     if (!ALLOWED_PORTS.has(parsed.port)) {
-      refuse(shown, "not allowed", "is not tunnelled: only ports 80 and 443 are");
+      refuse(shown, "port not allowed", "is not tunnelled: only ports 80 and 443 are");
       return;
     }
-    const listed =
-      "is in this run's egress allowlist, but was refused: the egress proxy's log says why";
     // Resolve BEFORE connecting and dial the resolved address, so an allowlisted
     // name that points at link-local/private space (cloud metadata, an internal
     // service) is refused, and so the address checked is the address used. The
     // resolution has its own deadline: `dns.lookup` takes no AbortSignal.
-    void resolveWithin(resolveHost, parsed.host, resolveTimeoutMs).then((resolved) => {
+    void addressFor(parsed.host).then((dial) => {
       // A client that left while its name resolved gets nothing dialled: its
       // 'close' has already fired, so nothing would ever tear the upstream down.
       if (clientSocket.destroyed) return;
-      if (resolved.kind !== "address") {
-        const why =
-          resolved.kind === "timeout"
-            ? "resolution timed out"
-            : resolved.kind === "failed"
-              ? `resolution failed (${resolved.code})`
-              : "unresolvable";
-        refuse(shown, why, listed);
-        return;
-      }
-      const { address } = resolved;
-      if (isForbiddenAddress(address)) {
-        refuse(shown, `resolves to ${address}`, listed);
+      if (!dial.ok) {
+        refuse(shown, dial.why, REFUSED_LISTED);
         return;
       }
       log(`egress ALLOW connect ${shown}`);
-      const upstream = net.connect(parsed.port, address, () => {
+      const upstream = net.connect(parsed.port, dial.address, () => {
         clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
         if (head && head.length > 0) upstream.write(head);
         upstream.pipe(clientSocket);
@@ -440,7 +510,10 @@ export function startEgressProxy(opts: {
         clientSocket.destroy();
       });
       clientSocket.on("close", () => upstream.destroy());
-    });
+    })
+      // Same reason as the plain-HTTP path: one CONNECT must not be able to take
+      // the proxy down through an unhandled rejection.
+      .catch(() => clientSocket.destroy());
   });
 
   // A server-level error (EMFILE from fd exhaustion, an accept failure) with no

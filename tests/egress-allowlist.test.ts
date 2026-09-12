@@ -416,15 +416,18 @@ describe("a CONNECT never holds a socket that nothing will reap", () => {
   it.each([
     {
       target: "attacker.example.com:443",
+      why: "not allowed",
       body: "egress proxy: attacker.example.com:443 is not in this run's egress allowlist.\n",
     },
     {
       // Listed, but a CONNECT to an arbitrary port is a generic TCP tunnel. That
-      // is the rule that refuses it, and adding the host again would not help.
+      // is the rule that refuses it, and adding the host again would not help,
+      // so the log must not say "not allowed" either.
       target: "api.anthropic.com:22",
+      why: "port not allowed",
       body: "egress proxy: api.anthropic.com:22 is not tunnelled: only ports 80 and 443 are.\n",
     },
-  ])("refuses $target before resolving it, naming the rule that refused it", async ({ target, body }) => {
+  ])("refuses $target before resolving it, naming the rule that refused it", async ({ target, why, body }) => {
     const logs: string[] = [];
     let asked = 0;
     const port = await listen({
@@ -438,7 +441,7 @@ describe("a CONNECT never holds a socket that nothing will reap", () => {
     const { text, socket } = await connectRaw(port, target, { withinMs: 5_000 });
     socket.destroy();
     expect(text).toBe(`HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\n\r\n${body}`);
-    expect(logs).toEqual([`egress DENY connect ${target} (not allowed)`]);
+    expect(logs).toEqual([`egress DENY connect ${target} (${why})`]);
     expect(asked).toBe(0);
   });
 
@@ -558,9 +561,16 @@ describe("the proxy module runs as one file with nothing beside it", () => {
       new URL("../src/core/execution/egress-proxy.ts", import.meta.url),
       "utf8",
     );
+    // Comments go first, whole blocks and trailing line comments alike: prose
+    // says things like `apart from "x"`, and a guard that cries wolf over a
+    // sentence is a guard someone deletes. `require(` is in the pattern because
+    // createRequire is the other way a bundled file reaches for a package.
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
     const specifiers = [
-      ...src.matchAll(/\bfrom\s*["']([^"']+)["']|\bimport\s*\(?\s*["']([^"']+)["']/g),
-    ].map((m) => m[1] ?? m[2]);
+      ...code.matchAll(
+        /\bfrom\s*["']([^"']+)["']|\bimport\s*\(?\s*["']([^"']+)["']|\brequire\s*\(\s*["']([^"']+)["']/g,
+      ),
+    ].map((m) => m[1] ?? m[2] ?? m[3]);
     expect(specifiers.length).toBeGreaterThan(0);
     expect(specifiers.filter((s) => !s?.startsWith("node:"))).toEqual([]);
   });
@@ -734,5 +744,451 @@ describe("the CONNECT resolution backstop stays above the resolver's own retries
     // API calls that were about to succeed, which is why this is not the SSRF
     // guard's fail-fast 5s.
     expect(CONNECT_RESOLVE_TIMEOUT_MS).toBeGreaterThan(10_000);
+  });
+});
+
+describe("the plain-HTTP path resolves, checks, and dials the address it checked", () => {
+  // The same guarantees CONNECT has, on the path a confined run takes for
+  // http:// URLs. Cloud metadata answers plain HTTP on port 80, so this is
+  // where an allowlisted name pointing into private space used to be proxied
+  // straight through, with no address check and no deadline.
+  let server: http.Server | null = null;
+  afterEach(() => {
+    server?.close();
+    server = null;
+  });
+
+  function listen(opts: Omit<Parameters<typeof startEgressProxy>[0], "port">): Promise<number> {
+    server = startEgressProxy({ ...opts, port: 0 });
+    return new Promise((resolve) => {
+      server!.on("listening", () => {
+        const addr = server!.address();
+        resolve(typeof addr === "object" && addr ? addr.port : 0);
+      });
+    });
+  }
+
+  /** One absolute-URI proxy request, the way an HTTP_PROXY-aware client sends
+   *  it. The http client parses the response framing. */
+  function proxyGet(port: number, absoluteUrl: string): Promise<{ status: number; body: string }> {
+    return new Promise((resolve, reject) => {
+      const req = http.request(
+        { port, host: "127.0.0.1", method: "GET", path: absoluteUrl },
+        (res) => {
+          let body = "";
+          res.setEncoding("utf8");
+          res.on("data", (c: string) => (body += c));
+          res.on("end", () => resolve({ status: res.statusCode ?? 0, body }));
+        },
+      );
+      req.on("error", reject);
+      req.end();
+    });
+  }
+
+  /** Poll until `done()` holds or the bound passes, so nothing races a timer. */
+  async function until(done: () => boolean, withinMs: number): Promise<boolean> {
+    const stop = Date.now() + withinMs;
+    while (!done() && Date.now() < stop) await new Promise((r) => setTimeout(r, 20));
+    return done();
+  }
+
+  async function connectionsSettleTo(want: number, withinMs: number): Promise<number> {
+    const conns = () => new Promise<number>((r) => server!.getConnections((_e, c) => r(c)));
+    const stop = Date.now() + withinMs;
+    let n = await conns();
+    while (n !== want && Date.now() < stop) {
+      await new Promise((r) => setTimeout(r, 20));
+      n = await conns();
+    }
+    return n;
+  }
+
+  const dnsError = (code: string) => Object.assign(new Error(`getaddrinfo ${code}`), { code });
+
+  /** One body for every refusal of an allowlisted host, as on the CONNECT path:
+   *  a reason would let the run tell a name that does not exist from one that
+   *  points into private space. */
+  const REFUSED_LISTED_BODY =
+    "egress proxy: api.anthropic.com:80 is in this run's egress allowlist, but was refused: " +
+    "the egress proxy's log says why.\n";
+
+  it.each([
+    {
+      name: "resolves to the cloud metadata address",
+      resolveHost: async () => ["169.254.169.254"],
+      why: "resolves to 169.254.169.254",
+    },
+    {
+      name: "never answers",
+      resolveHost: () => new Promise<string[]>(() => {}),
+      why: "resolution timed out",
+    },
+    {
+      name: "says the name does not exist",
+      resolveHost: () => Promise.reject(dnsError("ENOTFOUND")),
+      why: "unresolvable",
+    },
+  ])("refuses an allowlisted http:// host whose resolver $name", async ({ resolveHost, why }) => {
+    const logs: string[] = [];
+    const port = await listen({
+      allow: ["api.anthropic.com"],
+      log: (line) => logs.push(line),
+      resolveHost,
+      resolveTimeoutMs: 50,
+    });
+    const { status, body } = await proxyGet(port, "http://api.anthropic.com/v1/messages");
+    expect(status).toBe(403);
+    expect(body).toBe(REFUSED_LISTED_BODY);
+    expect(logs).toEqual([`egress DENY http api.anthropic.com:80 (${why})`]);
+  });
+
+  it.each([
+    {
+      name: "a host outside the allowlist",
+      url: "http://attacker.example.com/steal",
+      shown: "attacker.example.com:80",
+      why: "not allowed",
+      body:
+        "egress proxy: attacker.example.com is not in this run's egress allowlist. " +
+        'Add it with: vibe config set execution.container.egress.allow \'["attacker.example.com"]\'\n',
+    },
+    {
+      name: "an allowlisted host on a port that is not proxied",
+      url: "http://api.anthropic.com:8080/x",
+      shown: "api.anthropic.com:8080",
+      // Adding the host again would not help, so the log must not say the host
+      // is the problem either.
+      why: "port not allowed",
+      body: "egress proxy: api.anthropic.com:8080 is not proxied: only ports 80 and 443 are.\n",
+    },
+  ])("refuses $name before resolving anything", async ({ url, shown, why, body }) => {
+    const logs: string[] = [];
+    let asked = 0;
+    const port = await listen({
+      allow: ["api.anthropic.com"],
+      log: (line) => logs.push(line),
+      resolveHost: async () => {
+        asked += 1;
+        return ["160.79.104.10"];
+      },
+    });
+    const res = await proxyGet(port, url);
+    expect(res.status).toBe(403);
+    expect(res.body).toBe(body);
+    expect(logs).toEqual([`egress DENY http ${shown} (${why})`]);
+    expect(asked).toBe(0);
+  });
+
+  /** Capture what the proxy hands http.request, and optionally land the socket
+   *  on a local origin instead. The proxy still resolves and checks a public
+   *  address; only where the bytes go changes, because the address check would
+   *  never let it dial loopback. Options are copied before the redirect, so the
+   *  assertions see what the proxy asked for. */
+  function captureUpstream(redirectTo?: { host: string; port: number }) {
+    const seen: http.ClientRequestArgs[] = [];
+    const real = http.request;
+    const target = http as { request: typeof http.request };
+    target.request = ((options: http.ClientRequestArgs, cb?: (r: http.IncomingMessage) => void) => {
+      // Only the proxy's own upstream calls. The test client uses http.request
+      // too, always at 127.0.0.1, and redirecting THAT would send it straight
+      // to the origin, testing nothing at all.
+      if (options.host === "127.0.0.1") return real(options, cb);
+      seen.push({ ...options });
+      return real(redirectTo ? { ...options, ...redirectTo } : options, cb);
+    }) as typeof http.request;
+    return {
+      seen,
+      restore: () => {
+        target.request = real;
+      },
+    };
+  }
+
+  /** An origin for the proxy to talk to, on loopback, tracking its live
+   *  connections so a test can watch one get torn down. */
+  function startOrigin(
+    handle: (req: http.IncomingMessage, res: http.ServerResponse) => void,
+  ): Promise<{ port: number; sockets: Set<net.Socket>; close: () => void }> {
+    const origin = http.createServer(handle);
+    const sockets = new Set<net.Socket>();
+    origin.on("connection", (s) => {
+      sockets.add(s);
+      s.on("close", () => sockets.delete(s));
+    });
+    return new Promise((resolve) => {
+      origin.listen(0, "127.0.0.1", () => {
+        const addr = origin.address();
+        resolve({
+          port: typeof addr === "object" && addr ? addr.port : 0,
+          sockets,
+          close: () => {
+            for (const s of sockets) s.destroy();
+            origin.close();
+          },
+        });
+      });
+    });
+  }
+
+  type Answer = {
+    status: number;
+    body: string;
+    complete: boolean;
+    headers: http.IncomingHttpHeaders;
+  };
+
+  /** Like proxyGet, but reports whether the response FINISHED. A proxy that
+   *  turns a truncated body into a clean 200 is what this catches. */
+  function proxyFetch(
+    port: number,
+    absoluteUrl: string,
+    opts: { method?: string; body?: string; withinMs?: number } = {},
+  ): Promise<Answer> {
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = (answer: Answer) => {
+        if (!settled) {
+          settled = true;
+          resolve(answer);
+        }
+      };
+      const req = http.request(
+        { port, host: "127.0.0.1", method: opts.method ?? "GET", path: absoluteUrl },
+        (res) => {
+          let body = "";
+          res.setEncoding("utf8");
+          res.on("data", (c: string) => (body += c));
+          const finish = () =>
+            done({ status: res.statusCode ?? 0, body, complete: res.complete, headers: res.headers });
+          res.on("end", finish);
+          res.on("close", finish);
+          res.on("error", finish);
+        },
+      );
+      req.on("error", () => done({ status: 0, body: "", complete: false, headers: {} }));
+      const timer = setTimeout(
+        () => done({ status: -1, body: "", complete: false, headers: {} }),
+        opts.withinMs ?? 5_000,
+      );
+      timer.unref();
+      req.end(opts.body);
+    });
+  }
+
+  function rawProxyGet(port: number, absoluteUrl: string, host: string): net.Socket {
+    const socket = net.connect({ port, host: "127.0.0.1" }, () =>
+      socket.write(`GET ${absoluteUrl} HTTP/1.1\r\nHost: ${host}\r\nConnection: close\r\n\r\n`),
+    );
+    socket.on("error", () => {});
+    socket.on("data", () => {});
+    return socket;
+  }
+
+  /** A proxy pointed at `origin`, resolving every allowlisted name to a public
+   *  address the check accepts. Returns once it is listening and patched. */
+  async function proxyToOrigin(
+    origin: { port: number },
+    opts: { log?: (line: string) => void; idleTimeoutMs?: number; allow?: string[] } = {},
+  ) {
+    const port = await listen({
+      allow: opts.allow ?? ["origin.example"],
+      log: opts.log ?? (() => {}),
+      // A public address, so the private-address check passes honestly; the
+      // capture below is what lands the socket on the local origin.
+      resolveHost: async () => ["203.0.113.9"],
+      idleTimeoutMs: opts.idleTimeoutMs ?? 2_000,
+    });
+    return { port, capture: captureUpstream({ host: "127.0.0.1", port: origin.port }) };
+  }
+
+  it("sends to the address it checked, with the Host the allowlist approved", async () => {
+    const logs: string[] = [];
+    const origin = await startOrigin((req, res) => {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end(`host header: ${req.headers.host ?? ""}\n`);
+    });
+    const { port, capture } = await proxyToOrigin(origin, { log: (l) => logs.push(l) });
+    let answer: Answer;
+    try {
+      answer = await proxyFetch(port, "http://origin.example/x");
+    } finally {
+      capture.restore();
+      origin.close();
+    }
+    expect(answer.status).toBe(200);
+    // Proof on the wire: the origin routes on Host, so the approved authority
+    // has to survive sending to an address.
+    expect(answer.body).toBe("host header: origin.example\n");
+    const dialled = capture.seen.find((o) => o.host === "203.0.113.9");
+    expect(dialled, "the proxy sent to a name instead of the address it checked").toBeDefined();
+    expect(dialled!.timeout).toBe(2_000);
+    expect(logs).toEqual(["egress ALLOW http origin.example:80"]);
+  });
+
+  it("never turns a truncated origin response into a complete one", async () => {
+    // The origin answers, then stalls mid-body. Splicing the proxy's own prose
+    // into that body and closing the framing cleanly would hand the run a
+    // TRUNCATED response that reads as a finished one, and on a keep-alive
+    // connection the extra bytes land after the declared length as part of
+    // whatever reply comes next.
+    const origin = await startOrigin((_req, res) => {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.write('{"balance": 100, "transfer_to": "alice"');
+    });
+    const { port, capture } = await proxyToOrigin(origin, { idleTimeoutMs: 300 });
+    let answer: Answer;
+    try {
+      answer = await proxyFetch(port, "http://origin.example/x");
+    } finally {
+      capture.restore();
+      origin.close();
+    }
+    expect(answer.complete, "a truncated body was delivered as a complete response").toBe(false);
+    expect(answer.body).not.toContain("egress proxy");
+  });
+
+  it("does not relay the origin's hop-by-hop headers to the run", async () => {
+    // They belong to the proxy's connection with the origin, not to the run's
+    // connection with the proxy, and a relayed keep-alive is what puts a
+    // half-written response on a connection the client will reuse.
+    const origin = await startOrigin((_req, res) => {
+      res.writeHead(200, {
+        // Node's own server adds a Keep-Alive to every response it sends, so
+        // the value is what tells a relayed one from the proxy's own.
+        "keep-alive": "timeout=99",
+        "proxy-authenticate": 'Basic realm="origin"',
+        "content-type": "text/plain",
+      });
+      res.end("ok\n");
+    });
+    const { port, capture } = await proxyToOrigin(origin);
+    let answer: Answer;
+    try {
+      answer = await proxyFetch(port, "http://origin.example/x");
+    } finally {
+      capture.restore();
+      origin.close();
+    }
+    expect(answer.status).toBe(200);
+    expect(answer.headers["proxy-authenticate"]).toBeUndefined();
+    expect(answer.headers["keep-alive"]).not.toBe("timeout=99");
+  });
+
+  it("forwards a request body the client sent while the name was still resolving", async () => {
+    // The body arrives before the address does, so it has to survive the gap.
+    let received = "";
+    const origin = await startOrigin((req, res) => {
+      req.setEncoding("utf8");
+      req.on("data", (c: string) => (received += c));
+      req.on("end", () => res.writeHead(200, { "content-type": "text/plain" }).end("got\n"));
+    });
+    const { port, capture } = await proxyToOrigin(origin);
+    let answer: Answer;
+    try {
+      answer = await proxyFetch(port, "http://origin.example/x", {
+        method: "POST",
+        body: "hello body",
+      });
+    } finally {
+      capture.restore();
+      origin.close();
+    }
+    expect(answer.status).toBe(200);
+    expect(received).toBe("hello body");
+  });
+
+  it("tears the upstream down when the client leaves mid-request", async () => {
+    // Nothing propagates the client's close through a pipe, so without a
+    // teardown the dialled socket sits there until its idle timeout, once per
+    // abandoned request, on this proxy and on the origin.
+    const origin = await startOrigin(() => {
+      /* never answers */
+    });
+    const { port, capture } = await proxyToOrigin(origin, { idleTimeoutMs: 10_000 });
+    try {
+      const socket = rawProxyGet(port, "http://origin.example/x", "origin.example");
+      expect(await until(() => origin.sockets.size === 1, 5_000)).toBe(true);
+      socket.destroy();
+      expect(await until(() => origin.sockets.size === 0, 3_000), "the upstream outlived its client").toBe(true);
+    } finally {
+      capture.restore();
+      origin.close();
+    }
+  });
+
+  it("survives a logger that throws while a request is being allowed", async () => {
+    // log() is caller-supplied and runs inside the resolution callback. An
+    // unhandled rejection there exits the process, which is the whole run's
+    // egress, so one request must not be able to do that.
+    const origin = await startOrigin((_req, res) => res.writeHead(200).end("ok\n"));
+    const { port, capture } = await proxyToOrigin(origin, {
+      log: (line) => {
+        if (line.startsWith("egress ALLOW")) throw new Error("the logger blew up");
+      },
+    });
+    try {
+      await proxyFetch(port, "http://origin.example/x", { withinMs: 2_000 });
+      // Still serving: a proxy that died would never answer this.
+      const after = await proxyFetch(port, "http://not-listed.example/x", { withinMs: 2_000 });
+      expect(after.status).toBe(403);
+    } finally {
+      capture.restore();
+      origin.close();
+    }
+    expect(server!.listening).toBe(true);
+  });
+
+  it("survives a logger that throws while a CONNECT is being refused", async () => {
+    const port = await listen({
+      allow: ["api.anthropic.com"],
+      log: (line) => {
+        if (line.startsWith("egress DENY connect")) throw new Error("the logger blew up");
+      },
+      resolveHost: async () => ["169.254.169.254"],
+    });
+    const socket = rawProxyGet(port, "http://not-listed.example/x", "not-listed.example");
+    socket.destroy();
+    const connecting = net.connect({ port, host: "127.0.0.1" }, () =>
+      connecting.write("CONNECT api.anthropic.com:443 HTTP/1.1\r\nHost: api.anthropic.com:443\r\n\r\n"),
+    );
+    connecting.on("error", () => {});
+    connecting.on("data", () => {});
+    await until(() => false, 300);
+    connecting.destroy();
+    expect(server!.listening).toBe(true);
+    // A proxy that died on the throw would never answer this one.
+    const after = await proxyFetch(port, "http://not-listed.example/x", { withinMs: 2_000 });
+    expect(after.status).toBe(403);
+  });
+
+  it("dials nothing for a plain-HTTP client that left while its name was resolving", async () => {
+    // The CONNECT barrier again: the resolver is answered by hand, so nothing
+    // here races a timer.
+    let markAsked!: () => void;
+    const asked = new Promise<void>((r) => (markAsked = r));
+    let settle!: (addrs: string[]) => void;
+    const logs: string[] = [];
+    const port = await listen({
+      allow: ["api.anthropic.com"],
+      log: (line) => logs.push(line),
+      resolveHost: () => {
+        markAsked();
+        return new Promise<string[]>((r) => (settle = r));
+      },
+    });
+    const capture = captureUpstream();
+    try {
+      const socket = rawProxyGet(port, "http://api.anthropic.com/x", "api.anthropic.com");
+      await asked;
+      socket.destroy();
+      expect(await connectionsSettleTo(0, 5_000)).toBe(0);
+      settle(["192.0.2.1"]);
+      await new Promise((r) => setImmediate(r));
+      expect(capture.seen).toEqual([]);
+      expect(logs.filter((line) => line.startsWith("egress ALLOW"))).toEqual([]);
+    } finally {
+      capture.restore();
+    }
   });
 });
