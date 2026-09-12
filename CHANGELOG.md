@@ -116,7 +116,8 @@ should read the first entry: a run that checked nothing could merge.
   and they had already started to drift; one helper words it now. The egress
   proxy waited on name resolution with no deadline of its own, so how long a
   confined run's `CONNECT` hung was up to the system resolver; it now refuses at
-  the same deadline. The worse hold was on refusals: a refused connection stayed
+  a deadline of its own, set above what a system resolver spends before giving
+  up, so a slow name still lands and one that never answers cannot hold the run. The worse hold was on refusals: a refused connection stayed
   open for as long as its client kept it open, and now closes on a fixed
   deadline. An allowlisted host the proxy refuses is no longer told it is missing
   from the allowlist. These checks cover `https://` only: plain `http://`
