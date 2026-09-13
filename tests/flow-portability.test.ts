@@ -267,6 +267,68 @@ describe("importFlowFromUrl", () => {
     expect(result.flowId).toBe("imported-flow");
   });
 
+  it("connects to the address its check approved, not to the name", async () => {
+    // The check resolves the name and judges what it got. Fetching BY NAME
+    // afterwards resolves a second time, and the second answer can be the
+    // loopback address the first one was not.
+    const root = await makeRoot();
+    const pinned: string[] = [];
+    const result = await importFlowFromUrl({
+      projectRoot: root,
+      url: "https://flows.example/flow.yml",
+      resolveHost: async () => ["93.184.216.34"],
+      pinnedFetchFor: (addresses) => {
+        pinned.push(addresses.join(","));
+        return fakeFetch(VALID_FLOW);
+      },
+    });
+    if (!result.ok) throw new Error(result.reasons.join("\n"));
+    expect(pinned).toEqual(["93.184.216.34"]);
+  });
+
+  it("re-pins on a redirect, to the address that hop's own check approved", async () => {
+    const root = await makeRoot();
+    const pinned: string[] = [];
+    const served: string[] = [];
+    // Every hop carries the import ceiling: a limit that stops applying after a
+    // redirect is not a limit, and nothing else would notice it going missing.
+    const caps: (number | undefined)[] = [];
+    const result = await importFlowFromUrl({
+      projectRoot: root,
+      url: "https://first.example/flow.yml",
+      resolveHost: async (host) =>
+        host === "first.example" ? ["93.184.216.34"] : ["93.184.216.35"],
+      pinnedFetchFor: (addresses, opts) => {
+        const address = addresses.join(",");
+        caps.push(opts.maxBytes);
+        pinned.push(address);
+        return async (url: string) => {
+          served.push(`${address} ${url}`);
+          const redirecting = url.includes("first.example");
+          return {
+            ok: !redirecting,
+            status: redirecting ? 302 : 200,
+            headers: {
+              get: (n: string) =>
+                n.toLowerCase() === "location" && redirecting
+                  ? "https://second.example/real.yml"
+                  : null,
+            },
+            text: async () => (redirecting ? "" : VALID_FLOW),
+          };
+        };
+      },
+    });
+    if (!result.ok) throw new Error(result.reasons.join("\n"));
+    expect(pinned).toEqual(["93.184.216.34", "93.184.216.35"]);
+    // The second hop went to ITS address, not the first hop's.
+    expect(served).toEqual([
+      "93.184.216.34 https://first.example/flow.yml",
+      "93.184.216.35 https://second.example/real.yml",
+    ]);
+    expect(caps).toEqual([FLOW_IMPORT_MAX_BYTES, FLOW_IMPORT_MAX_BYTES]);
+  });
+
   it("rejects non-http(s) schemes", async () => {
     const root = await makeRoot();
     const result = await importFlowFromUrl({

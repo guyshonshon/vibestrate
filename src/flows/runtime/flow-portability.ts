@@ -21,7 +21,12 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import dns from "node:dns/promises";
 import net from "node:net";
-import { redirectTargetOf, MAX_GUARDED_REDIRECTS } from "../../core/guarded-fetch.js";
+import {
+  redirectTargetOf,
+  guardedTransportFor,
+  MAX_GUARDED_REDIRECTS,
+  type PinnedFetchFactory,
+} from "../../core/guarded-fetch.js";
 import type { HostResolver } from "../../core/execution/egress-proxy.js";
 import YAML from "yaml";
 import { isPathInside, projectFlowsDir } from "../../utils/paths.js";
@@ -581,6 +586,13 @@ export async function importFlowFromUrl(input: {
   /** Skip the SSRF host check. ONLY the CLI sets this (user typed the URL);
    *  the HTTP API never does. */
   allowPrivateHosts?: boolean;
+  /** Name resolver for the SSRF check, injectable so a test does not depend on
+   *  the real one. */
+  resolveHost?: HostResolver;
+  /** How the checked host is reached. Production pins the connection to the
+   *  addresses the check approved; a test can watch which those were, or point
+   *  the real transport at a local origin. */
+  pinnedFetchFor?: PinnedFetchFactory;
 }): Promise<FlowWriteResult> {
   // ONE clock for the whole import. Name resolution is not covered by the
   // AbortController (dns.lookup takes no signal) and the first check runs
@@ -602,21 +614,25 @@ export async function importFlowFromUrl(input: {
     };
   }
 
+  // The check hands back the transport for the host it approved, pinned to that
+  // address: connecting BY NAME afterwards would resolve a second time, and the
+  // second answer can differ from the one that was judged.
+  let pinned: FetchImpl | undefined;
   if (!input.allowPrivateHosts) {
     const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
-    const verdict = await checkFetchHost(hostname, { timeoutMs: remainingMs() });
-    if (verdict !== "ok") {
-      return {
-        ok: false,
-        status: 400,
-        reasons: [
-          hostRefusalReason(hostname, verdict, "fetch from"),
-        ],
-      };
-    }
+    const transport = await guardedTransportFor({
+      hostname,
+      what: "fetch from",
+      timeoutMs: remainingMs(),
+      maxBytes: FLOW_IMPORT_MAX_BYTES,
+      resolveHost: input.resolveHost,
+      pinnedFetchFor: input.pinnedFetchFor,
+    });
+    if (!transport.ok) return { ok: false, status: 400, reasons: [transport.reason] };
+    pinned = transport.fetchImpl;
   }
 
-  const fetchImpl = input.fetchImpl ?? (globalThis.fetch as unknown as FetchImpl);
+  let fetchImpl = input.fetchImpl ?? pinned ?? (globalThis.fetch as unknown as FetchImpl);
   if (!fetchImpl) {
     return { ok: false, status: 500, reasons: ["No fetch implementation available."] };
   }
@@ -655,16 +671,20 @@ export async function importFlowFromUrl(input: {
       }
       if (!input.allowPrivateHosts) {
         const nextHost = next.hostname.replace(/^\[|\]$/g, "");
-        const nextVerdict = await checkFetchHost(nextHost, { timeoutMs: remainingMs() });
-        if (nextVerdict !== "ok") {
-          return {
-            ok: false,
-            status: 400,
-            reasons: [
-              hostRefusalReason(nextHost, nextVerdict, "follow a redirect to"),
-            ],
-          };
-        }
+        const transport = await guardedTransportFor({
+          hostname: nextHost,
+          what: "follow a redirect to",
+          timeoutMs: remainingMs(),
+          // The same ceiling as the first hop: a limit that stops applying after
+          // a redirect is not a limit.
+          maxBytes: FLOW_IMPORT_MAX_BYTES,
+          resolveHost: input.resolveHost,
+          pinnedFetchFor: input.pinnedFetchFor,
+        });
+        if (!transport.ok) return { ok: false, status: 400, reasons: [transport.reason] };
+        // This hop's address, not the first hop's: a pin carried across hosts
+        // would be the same gap wearing a different hat.
+        if (!input.fetchImpl) fetchImpl = transport.fetchImpl;
       }
       current = next;
       res = await fetchImpl(current.toString(), {
@@ -692,6 +712,12 @@ export async function importFlowFromUrl(input: {
     text = await res.text();
   } catch (err) {
     const aborted = err instanceof Error && err.name === "AbortError";
+    // The transport stops an oversize body as it arrives, so this is where an
+    // import that is too big now lands. It is the same refusal the size branch
+    // below makes, and it keeps the same status.
+    if (err instanceof Error && err.name === "ContentTooLarge") {
+      return { ok: false, status: 413, reasons: [err.message] };
+    }
     return {
       ok: false,
       status: 400,
@@ -769,21 +795,27 @@ export function hostRefusalReason(
  *  This is the single implementation. guarded-fetch delegates to it rather than
  *  keeping its own copy: two hand-maintained SSRF host checks drift, and the
  *  one that drifts is the one nobody is looking at. */
+export type HostDecision =
+  | { verdict: "ok"; addresses: string[] }
+  | { verdict: Exclude<HostVerdict, "ok">; addresses?: undefined };
+
 export async function checkFetchHost(
   hostname: string,
   opts: { resolveHost?: HostResolver; timeoutMs?: number } = {},
-): Promise<HostVerdict> {
+): Promise<HostDecision> {
   const resolveHost = opts.resolveHost ?? systemResolver;
   const timeoutMs = opts.timeoutMs ?? HOST_RESOLVE_TIMEOUT_MS;
   const host = hostname.replace(/^\[|\]$/g, "");
-  if (net.isIP(host)) return isBlockedIp(host) ? "blocked" : "ok";
+  if (net.isIP(host)) {
+    return isBlockedIp(host) ? { verdict: "blocked" } : { verdict: "ok", addresses: [host] };
+  }
   // Reject obvious internal names outright.
   const lower = host.toLowerCase();
   if (lower === "localhost" || lower.endsWith(".localhost") || lower.endsWith(".internal")) {
-    return "blocked";
+    return { verdict: "blocked" };
   }
   // A budget already spent is a timeout, not an excuse to skip the check.
-  if (timeoutMs <= 0) return "timeout";
+  if (timeoutMs <= 0) return { verdict: "timeout" };
   let timer: NodeJS.Timeout | undefined;
   const TIMED_OUT = Symbol("timeout");
   try {
@@ -794,10 +826,16 @@ export async function checkFetchHost(
         timer.unref?.();
       }),
     ]);
-    if (addrs.length === 0) return "unresolved";
-    return addrs.some((a) => isBlockedIp(a)) ? "blocked" : "ok";
+    if (addrs.length === 0) return { verdict: "unresolved" };
+    if (addrs.some((a) => isBlockedIp(a))) return { verdict: "blocked" };
+    // ALL of them, not just the first: every one was judged, and handing back
+    // the whole set keeps the failover the platform would have had when the
+    // first address is unreachable. Handing them back at all is the point: a
+    // caller that reconnects BY NAME has only moved the lookup, and the second
+    // one can answer differently, which is what a DNS rebind is.
+    return { verdict: "ok", addresses: [...addrs] };
   } catch (err) {
-    return err === TIMED_OUT ? "timeout" : "unresolved";
+    return { verdict: err === TIMED_OUT ? "timeout" : "unresolved" };
   } finally {
     clearTimeout(timer);
   }
@@ -808,5 +846,5 @@ export async function isBlockedFetchHost(
   hostname: string,
   opts: { resolveHost?: HostResolver; timeoutMs?: number } = {},
 ): Promise<boolean> {
-  return (await checkFetchHost(hostname, opts)) !== "ok";
+  return (await checkFetchHost(hostname, opts)).verdict !== "ok";
 }

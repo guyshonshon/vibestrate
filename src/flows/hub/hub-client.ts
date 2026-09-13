@@ -13,12 +13,16 @@
 
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { fetchGuardedText } from "../../core/guarded-fetch.js";
-import { checkFetchHost, hostRefusalReason } from "../runtime/flow-portability.js";
+import {
+  fetchGuardedText,
+  guardedTransportFor,
+  type PinnedFetchFactory,
+} from "../../core/guarded-fetch.js";
 import {
   importFlowFromText,
   type FlowWriteResult,
   type FetchImpl,
+  type HostResolver,
 } from "../runtime/flow-portability.js";
 import { redact } from "../../notifications/gateways/secret-resolver.js";
 import { assertNoHardSecrets } from "./publish-guards.js";
@@ -107,12 +111,16 @@ async function getJson(input: {
   fetchImpl?: FetchImpl;
   allowPrivateHosts?: boolean;
   maxBytes?: number;
+  resolveHost?: HostResolver;
+  pinnedFetchFor?: PinnedFetchFactory;
 }): Promise<HubResult<unknown>> {
   const got = await fetchGuardedText({
     url: input.url,
     fetchImpl: input.fetchImpl,
     allowPrivateHosts: input.allowPrivateHosts,
     maxBytes: input.maxBytes ?? 1024 * 1024,
+    resolveHost: input.resolveHost,
+    pinnedFetchFor: input.pinnedFetchFor,
   });
   if (!got.ok) return { ok: false, reason: got.reason };
   try {
@@ -167,6 +175,8 @@ export async function pullHubFlow(input: {
   baseUrl?: string;
   fetchImpl?: FetchImpl;
   allowPrivateHosts?: boolean;
+  resolveHost?: HostResolver;
+  pinnedFetchFor?: PinnedFetchFactory;
 }): Promise<HubResult<HubPulledFlow>> {
   const base = trimSlash(input.baseUrl ?? DEFAULT_HUB_BASE_URL);
   const url = `${base}/api/hub/pull/${encodeURIComponent(input.ref)}`;
@@ -174,6 +184,8 @@ export async function pullHubFlow(input: {
     url,
     fetchImpl: input.fetchImpl,
     allowPrivateHosts: input.allowPrivateHosts,
+    resolveHost: input.resolveHost,
+    pinnedFetchFor: input.pinnedFetchFor,
   });
   if (!got.ok) return got;
   const parsed = hubPulledFlowSchema.safeParse(got.value);
@@ -231,6 +243,13 @@ export async function publishFlow(input: {
   allowTokenToCustomHost?: boolean;
   allowPrivateHosts?: boolean;
   fetchImpl?: FetchImpl;
+  /** Name resolver for the SSRF check, injectable for the same reason
+   *  `fetchImpl` is: a test that reaches the real resolver fails offline. */
+  resolveHost?: HostResolver;
+  /** How the checked host is reached. Production pins the connection to the
+   *  addresses the check approved; a test can watch which those were, or point
+   *  the real transport at a local origin. */
+  pinnedFetchFor?: PinnedFetchFactory;
 }): Promise<HubPublishResult> {
   // Hard-refuse secrets FIRST - never egress a secret regardless of host/origin.
   const refusals = assertNoHardSecrets(input.content);
@@ -258,15 +277,27 @@ export async function publishFlow(input: {
       reason: `Refusing to send the hub token to a non-default origin (${origin}). Use the default hub, or pass --allow-token-to-custom-host for local testing.`,
     };
   }
-  // SSRF guard (the HTTP route never sets allowPrivateHosts; the CLI may).
+  // SSRF guard (the HTTP route never sets allowPrivateHosts; the CLI may). The
+  // check hands back the transport, pinned to the address it approved, so the
+  // request carrying the token cannot be re-resolved onto another machine
+  // between the check and the connection.
+  let pinned: FetchImpl | undefined;
   if (!input.allowPrivateHosts) {
-    const verdict = await checkFetchHost(hostname);
-    if (verdict !== "ok") {
-      return { ok: false, status: 0, reason: hostRefusalReason(hostname, verdict, "publish to") };
-    }
+    const transport = await guardedTransportFor({
+      hostname,
+      what: "publish to",
+      resolveHost: input.resolveHost,
+      // The hub answers a publish with a small JSON body. A ceiling here means a
+      // hostile or broken responder cannot stream until the process runs out of
+      // memory; the caller's own limit would only apply once it all arrived.
+      maxBytes: 1024 * 1024,
+      pinnedFetchFor: input.pinnedFetchFor,
+    });
+    if (!transport.ok) return { ok: false, status: 0, reason: transport.reason };
+    pinned = transport.fetchImpl;
   }
 
-  const fetchImpl = input.fetchImpl ?? (globalThis.fetch as unknown as FetchImpl);
+  const fetchImpl = input.fetchImpl ?? pinned ?? (globalThis.fetch as unknown as FetchImpl);
   if (!fetchImpl) return { ok: false, status: 0, reason: "No fetch implementation available." };
 
   const url = `${base}/api/hub/publish`;
@@ -290,9 +321,10 @@ export async function publishFlow(input: {
     return { ok: false, status: 0, reason: `Hub publish request failed: ${redact(err, [input.token])}` };
   }
 
-  // `redirect: "manual"` yields an opaqueredirect (status 0) on real fetch; an
-  // injected fetchImpl may surface the raw 3xx. Treat either as a hard failure
-  // - the token does not chase a redirect to an unvalidated host.
+  // A 3xx is a hard failure: the token does not chase a redirect to a host
+  // nothing validated. The status check is the mechanism (the pinned transport
+  // and undici both surface the real 3xx); the opaqueredirect arm is only there
+  // for a fetch configured to hide one.
   const resType = (res as { type?: string }).type;
   if (resType === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
     return {
@@ -325,7 +357,16 @@ export async function publishFlow(input: {
 
   if (res.status === 409) {
     // A timed-out-but-stored publish, or a true re-publish. Compare content sha.
-    const existing = await pullHubFlow({ ref: input.ref, baseUrl: base, fetchImpl: input.fetchImpl, allowPrivateHosts: input.allowPrivateHosts });
+    const existing = await pullHubFlow({
+      ref: input.ref,
+      baseUrl: base,
+      fetchImpl: input.fetchImpl,
+      allowPrivateHosts: input.allowPrivateHosts,
+      // The re-pull is checked and pinned on its own, but a caller that injected
+      // a resolver meant it for every request this makes, not just the first.
+      resolveHost: input.resolveHost,
+      pinnedFetchFor: input.pinnedFetchFor,
+    });
     if (existing.ok && existing.value.sha256 && existing.value.sha256.toLowerCase() === sha256Hex(input.content).toLowerCase()) {
       return {
         ok: true,

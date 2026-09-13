@@ -153,7 +153,7 @@ All three write the flow's own `flow.yml` under `.vibestrate/flows/`, through on
 - **Schema validation** against the full Flow schema.
 - **Secret refusal** - a flow carrying a high-precision token shape (AWS, GitHub, Stripe, Anthropic, PEM and others) is rejected, not written.
 - **Control-character and size guard** - NUL and disallowed control chars are refused; imports are capped at 256 KB.
-- **SSRF guard** on URL imports - `http(s)` only, and the resolved host must not be private or loopback. (`vibe flows import <url>` trusts a user-typed URL and skips the host block; the HTTP API never does.)
+- **SSRF guard** on URL imports - `http(s)` only, and the resolved host must not be private or loopback. The check hands back the connection: the request goes to the address that was judged, so a name that resolves differently a moment later cannot move it, and every redirect hop is checked and pinned the same way. (`vibe flows import <url>` trusts a user-typed URL and skips the host block; the HTTP API never does.)
 - **Overwrite policy** - an existing *project* flow is replaced only with `overwrite: true`; a builtin of the same id is always shadowable. New writes return `201`, replacements `200`.
 - **Action Broker gate** - each of them, plus fork, the builder's patch and `DELETE`, raises a `file.write` the broker decides on.
 
