@@ -115,8 +115,23 @@ describe("an allowlisted name cannot point somewhere private", () => {
       "fd00::1",
       "fe80::1",
       "::ffff:127.0.0.1",
+      // The same addresses, spelled the ways a prefix check misses. All three
+      // reach 127.0.0.1 or the metadata service through the v4 stack.
+      "::ffff:7f00:1",
+      "0:0:0:0:0:ffff:7f00:1",
+      "::ffff:a9fe:a9fe",
+      "::127.0.0.1",
+      "ff02::1",
     ]) {
       expect(isForbiddenAddress(ip), ip).toBe(true);
+    }
+  });
+
+  it("refuses anything that is not an address at all", () => {
+    // A check that answers "fine" for input it could not parse is the shape of
+    // every bypass; the caller dials what this approves.
+    for (const junk of ["", "not-an-address", "127.0.0.1.evil.com", "0x7f000001", "::ffff:999.1.1.1"]) {
+      expect(isForbiddenAddress(junk), junk).toBe(true);
     }
   });
 
@@ -487,6 +502,39 @@ describe("a CONNECT never holds a socket that nothing will reap", () => {
     await new Promise((r) => setImmediate(r));
     socket.destroy();
     expect(logs).toEqual(["egress DENY connect api.anthropic.com:443 (resolution timed out)"]);
+  });
+
+  it("runs one lookup at a time per host, however many requests arrive", async () => {
+    // getaddrinfo runs on libuv's threadpool, four threads by default, and
+    // cannot be cancelled. One lookup per request for a slow name fills that
+    // pool, and every OTHER name then times out behind it.
+    const asked: string[] = [];
+    const port = await listen({
+      allow: [".example.com"],
+      log: () => {},
+      resolveHost: (host) => {
+        asked.push(host);
+        return new Promise<string[]>(() => {});
+      },
+      resolveTimeoutMs: 60,
+    });
+    const burst = await Promise.all(
+      [0, 1, 2, 3].map(() => connectRaw(port, "slow.example.com:443", { withinMs: 5_000 })),
+    );
+    for (const { text, socket } of burst) {
+      expect(text).toMatch(/^HTTP\/1\.1 403 /);
+      socket.destroy();
+    }
+    expect(asked).toEqual(["slow.example.com"]);
+    // A client that gave up must not start a second lookup for a name whose
+    // first one is still holding a thread.
+    const again = await connectRaw(port, "slow.example.com:443", { withinMs: 5_000 });
+    again.socket.destroy();
+    expect(asked).toEqual(["slow.example.com"]);
+    // A different name is a different lookup.
+    const other = await connectRaw(port, "other.example.com:443", { withinMs: 5_000 });
+    other.socket.destroy();
+    expect(asked).toEqual(["slow.example.com", "other.example.com"]);
   });
 
   it("reaps an idle client while its name is still resolving", async () => {

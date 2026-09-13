@@ -256,27 +256,38 @@ function relayableHeaders(headers: http.IncomingHttpHeaders): http.IncomingHttpH
  * not. Resolve first, check the address, then connect to that address - which
  * also closes the check-then-connect gap a DNS rebind would use.
  */
+const FORBIDDEN_ADDRESSES = (() => {
+  const list = new net.BlockList();
+  list.addSubnet("0.0.0.0", 8);
+  list.addSubnet("10.0.0.0", 8);
+  list.addSubnet("100.64.0.0", 10); // CGNAT
+  list.addSubnet("127.0.0.0", 8);
+  list.addSubnet("169.254.0.0", 16); // link-local + cloud metadata
+  list.addSubnet("172.16.0.0", 12);
+  list.addSubnet("192.168.0.0", 16);
+  list.addSubnet("224.0.0.0", 3); // multicast, and everything reserved above it
+  list.addSubnet("::", 96, "ipv6"); // unspecified, loopback, IPv4-compatible
+  list.addSubnet("fc00::", 7, "ipv6"); // unique-local
+  list.addSubnet("fe80::", 10, "ipv6"); // link-local
+  list.addSubnet("ff00::", 8, "ipv6"); // multicast
+  return list;
+})();
+
 export function isForbiddenAddress(ip: string): boolean {
-  // Strict dotted-quad only: `::ffff:127.0.0.1` also splits into four parts on
-  // ".", and letting it through here would make every octet NaN and every
-  // comparison false - i.e. loopback would read as public.
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
-    const [a, b] = ip.split(".").map((n) => Number(n)) as [number, number, number, number];
-    if (a === 10 || a === 127 || a === 0) return true;
-    if (a === 169 && b === 254) return true; // link-local + cloud metadata
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 192 && b === 168) return true;
-    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
-    if (a >= 224) return true; // multicast + reserved
-    return false;
-  }
-  const v6 = ip.toLowerCase();
-  if (v6 === "::1" || v6 === "::") return true;
-  // Unique-local (fc00::/7), link-local (fe80::/10), and v4-mapped loopback.
-  if (/^f[cd]/.test(v6) || v6.startsWith("fe8") || v6.startsWith("fe9")) return true;
-  if (v6.startsWith("fea") || v6.startsWith("feb")) return true;
-  if (v6.startsWith("::ffff:")) return isForbiddenAddress(v6.slice(7));
-  return false;
+  const family = net.isIP(ip);
+  // Not an address at all. A check that answers "fine" for input it could not
+  // parse is the shape of every bypass, and the caller dials what this approves.
+  if (family === 0) return true;
+  // BlockList parses the address instead of matching how it is spelled, which
+  // is what one host having many spellings demands: `::ffff:127.0.0.1`,
+  // `::ffff:7f00:1` and `0:0:0:0:0:ffff:7f00:1` are the same machine and only
+  // the first reads as loopback. A v4-mapped address is checked against the v4
+  // rules here, so the spelling stops deciding the answer.
+  //
+  // Left alone deliberately: NAT64 (`64:ff9b::/96`) carries an IPv4 address in
+  // its low bits, and blocking it would cut egress on a DNS64 network, where
+  // every v4-only host resolves that way.
+  return FORBIDDEN_ADDRESSES.check(ip, family === 4 ? "ipv4" : "ipv6");
 }
 
 /** A hostname must be plain letters-digits-hyphen-dot. Anything else (userinfo
@@ -307,13 +318,30 @@ export function startEgressProxy(opts: {
   const resolveTimeoutMs = opts.resolveTimeoutMs ?? CONNECT_RESOLVE_TIMEOUT_MS;
   const idleTimeoutMs = opts.idleTimeoutMs ?? TUNNEL_IDLE_MS;
 
+  // One lookup at a time per host. getaddrinfo runs on libuv's threadpool, four
+  // threads by default, and cannot be cancelled, so a burst of requests for one
+  // slow name would hold every thread and make every OTHER name time out behind
+  // it. Requests arriving while a lookup runs join it, and the entry lives until
+  // the lookup itself settles rather than until a caller's deadline expires: a
+  // client that gives up must not be able to start a second one.
+  const inFlight = new Map<string, Promise<string[]>>();
+  const sharedResolve: HostResolver = (host) => {
+    const running = inFlight.get(host);
+    if (running) return running;
+    const started = resolveHost(host);
+    inFlight.set(host, started);
+    const forget = () => inFlight.delete(host);
+    started.then(forget, forget);
+    return started;
+  };
+
   /** The one address an allowlisted host may be reached at, or why it may not
    *  be. Both paths resolve through here, so the address that gets checked is
    *  the address that gets dialled, and their refusals cannot drift apart. */
   const addressFor = async (
     host: string,
   ): Promise<{ ok: true; address: string } | { ok: false; why: string }> => {
-    const resolved = await resolveWithin(resolveHost, host, resolveTimeoutMs);
+    const resolved = await resolveWithin(sharedResolve, host, resolveTimeoutMs);
     if (resolved.kind === "timeout") return { ok: false, why: "resolution timed out" };
     if (resolved.kind === "failed") return { ok: false, why: `resolution failed (${resolved.code})` };
     if (resolved.kind === "unresolvable") return { ok: false, why: "unresolvable" };
