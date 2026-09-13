@@ -41,6 +41,20 @@ should read the first entry: a run that checked nothing could merge.
   and shown to the reviewer, where before a run read back as four checks, none
   passed, none failed.
 
+- **A checked host is the host you reach.** Fetching a flow from a URL, pulling
+  or publishing on the hub, installing a skill and loading a context source all
+  resolved the name, judged the address, and then connected by NAME, which
+  resolves a second time. A name that answers with a public address once and
+  your own network the next moment was therefore never really excluded. The
+  check now hands back the connection itself, aimed at the address it approved,
+  and every redirect hop is judged and aimed the same way. Two smaller things
+  came with it: the address check reads an address rather than how it is
+  spelled, so `::ffff:7f00:1` is loopback like every other way of writing it,
+  and a body that runs past its limit is cut off as it arrives instead of after
+  it has all been held in memory. All of that is for the paths that do the
+  check: `vibe flows import <url>` still trusts a URL you typed yourself and
+  skips it, as it always has.
+
 - **A file hint can only name a path inside the run's worktree or a directory
   the run linked in.** 0.4.3 said that and did not do it. It decided which hints
   had earned a look outside the worktree by asking the worktree whether the
